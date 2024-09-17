@@ -1,3 +1,6 @@
+/*
+  MetaWin Dashboard created by dwsoulz
+*/
 require('dotenv').config();
 
 const axios = require('axios');
@@ -8,10 +11,7 @@ const ejs = require('ejs');
 const TOKEN_BEARER = process.env.TOKEN_BEARER;
 const PAGE_SIZE = parseInt(process.env.PAGE_SIZE, 10);
 const BATCH_SIZE = parseInt(process.env.BATCH_SIZE, 10);
-console.log(TOKEN_BEARER);
-/******************************************************************************************************
-                              DO NOT CHANGE CODE BELOW THIS LINE
-******************************************************************************************************/
+
 const METAWIN_ENDPOINTS = {
   HISTORY: 'https://api.prod.platform.metawin.com/game/action',
   NOTIFICATIONS: 'https://api.prod.platform.metawin.com/notification',
