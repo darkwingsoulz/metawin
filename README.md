@@ -2,8 +2,10 @@
 
 This project generates personal stats for your MetaWin gaming history and rewards. It covers daily, monthly, game-specific, and overall summaries to help you track your performance and rewards.
 
-If you'd like to support the project, consider donating ETH:
+## Donations
+If you find this script helpful, donations are appreciated
 
+Ethereum Address:
 ```bash
 0x90fCf38FcE6250e9E0187E32C388971aafDD5426
 ```
