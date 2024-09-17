@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Stats</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .nav-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #1e1e1e;
+            padding: 10px 0;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-bar a {
+            color: #fff;
+            text-decoration: none;
+            margin: 0 15px;
+            font-size: 16px;
+            transition: color 0.3s ease;
+        }
+
+        .nav-bar a:hover {
+            color: #ff4081;
+        }
+
+        .nav-bar a.active {
+            color: #ff4081;
+            font-weight: bold;
+        }
+
+        .metawin-label {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ff4081;
+            margin-right: 30px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .info-blurb {
+            background-color: #333;
+            border-left: 4px solid #4caf50;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            color: #ddd;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .info-blurb strong {
+            color: #4caf50;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 25px;
+            border-radius: 12px;
+            background-color: #1e1e1e;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .section:hover {
+            transform: scale(1.02);
+        }
+
+        .section h2 {
+            margin-top: 0;
+            font-size: 24px;
+            color: #ff4081;
+        }
+
+        .section table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .section th,
+        .section td {
+            border: none;
+            padding: 12px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .section th {
+            background-color: #2a2a2a;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .section td {
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+
+        .section tr:nth-child(even) td {
+            background-color: #2c2c2c;
+        }
+
+        /* Back to Top Button */
+        .back-to-top {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #ff4081;
+            color: #fff;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: none;
+            z-index: 100;
+        }
+
+        .back-to-top:hover {
+            background-color: #ff79a8;
+        }
+
+        /* Show Back to Top button on scroll */
+        .show-back-to-top {
+            display: block;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .game {
+            background-color: #1e1e1e;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .game:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Image styling */
+        .game img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        /* Game name styling */
+        .game-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #ff4081;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+
+        /* Currency section tables */
+        .currency-section {
+            background-color: #2a2a2a;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .currency-section table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .currency-section th,
+        .currency-section td {
+            padding: 10px;
+            color: #e0e0e0;
+        }
+
+        .currency-section th {
+            text-align: left;
+            font-size: 14px;
+            background-color: #333;
+            color: #ff4081;
+        }
+
+        .currency-section td {
+            font-size: 14px;
+        }
+
+        .currency-section tr:nth-child(even) {
+            background-color: #3a3a3a;
+        }
+
+        /* Total net styling */
+        .total-net {
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        /* Add spacing between different game sections */
+        .game-details {
+            text-align: left;
+        }
+
+        .search-bar {
+            width: 100%;
+            max-width: 400px;
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 30px;
+            background-color: #1e1e1e;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-bar::placeholder {
+            color: #999;
+            font-style: italic;
+        }
+
+        .search-bar:focus {
+            box-shadow: 0 6px 15px rgba(255, 64, 129, 0.6);
+            background-color: #2a2a2a;
+            transform: scale(1.02);
+        }
+
+        .search-bar-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .metawin-label {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ff4081;
+            margin-right: 30px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .profit {
+            color: #4CAF50;
+        }
+
+        .loss {
+            color: #FF6F61;
+        }
+
+        @media screen and (max-width: 768px) {
+            .game {
+                padding: 15px;
+            }
+
+            .game-name {
+                font-size: 20px;
+            }
+
+            .currency-section th,
+            .currency-section td {
+                font-size: 12px;
+            }
+
+            .total-net {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sticky Navigation Bar -->
+    <div class="nav-bar">
+        <span class="metawin-label">MetaWin</span>
+        <a href="#summary">Summary</a>
+        <a href="#currency-stats">Currency Stats</a>
+        <a href="#game-type-stats">Game Type Stats</a>
+        <a href="#monthly-stats">Monthly Stats</a>
+        <a href="#daily-stats">Daily Stats</a>
+        <a href="#games-section">Game Stats</a>
+        <!--TODO <a href="#rewards">Rewards</a>-->
+    </div>
+
+    <div class="container" id="top">
+        <!-- Summary -->
+        <div class="section" id="summary">
+            <h2>Summary</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Overall Net USD</th>
+                        <th>Overall Net USD (Inc. Rewards)</th>
+                        <th>Total Rewards</th>
+                        <th>Total Wagered (Last 7 Days)</th>
+                        <th>Total Wagered</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <span class="<%= overallStats.netUSD >= 0 ? 'profit' : 'loss' %>">
+                                <%= formatCurrency(overallStats.netUSD) %>
+                            </span>
+                        </td>
+                        <td>
+                            <span
+                                class="<%= (Number(overallStats.netUSD) + Number(overallStats.rewards)) >= 0 ? 'profit' : 'loss' %>">
+                                <%= formatCurrency(Number(overallStats.netUSD) + Number(overallStats.rewards)) %>
+                            </span>
+                        </td>
+                        <td>
+                            <%= formatCurrency(overallStats.rewards) %>
+                        </td>
+                        <td>
+                            <%= formatCurrency(overallStats.lossesUSD7Days) %>
+                        </td>
+                        <td>
+                            <%= formatCurrency(overallStats.lossesUSD) %>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="info-blurb">
+                Rewards include <strong>winbacks</strong>, <strong>playable ETH</strong>, <strong>daily/weekly/monthly reels</strong>, and <strong>direct tips</strong> from
+                MetaWin.
+                Keep in mind, <strong>playable ETH</strong> is still counted as a reward, as any wagers made with it are
+                reflected in your net totals.
+            </p>
+        </div>
+
+        <!-- Overall Stats By Currency Section -->
+        <div class="section" id="currency-stats">
+            <h2>Overall Stats By Currency</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Currency</th>
+                        <th>Plays</th>
+                        <th>Total Wagered</th>
+                        <th>Average Bet</th>
+                        <th>RTP %</th>
+                        <th>Net USD</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% reportOverallStatsByCurrency.forEach(stat=> { %>
+                        <tr>
+                            <td>
+                                <%= stat.currencyCode %>
+                            </td>
+                            <td>
+                                <%= formatNumber(stat.plays) %>
+                            </td>
+                            <td>
+                                <%= formatCurrency(stat.totalWagered) %>
+                            </td>
+                            <td>
+                                <%= formatCurrency(stat.averageBet) %>
+                            </td>
+                            <td>
+                                <%= formatPercentage(stat.rtp) %>
+                            </td>
+                            <td>
+                                <span class="<%= stat.netUSD >= 0 ? 'profit' : 'loss' %>">
+                                    <%= formatCurrency(stat.netUSD) %>
+                                </span>
+                            </td>
+                        </tr>
+                        <% }); %>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section" id="game-type-stats">
+            <h2>Overall Stats By Game Type</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Game Type</th>
+                        <th>Plays</th>
+                        <th>Total Wagered</th>
+                        <th>Average Bet</th>
+                        <th>RTP %</th>
+                        <th>Net USD</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% reportOverallStatsByGameType.forEach(stat=> { %>
+                        <tr>
+                            <td>
+                                <%= stat.gameType %>
+                            </td>
+                            <td>
+                                <%= formatNumber(stat.plays) %>
+                            </td>
+                            <td>
+                                <%= formatCurrency(stat.totalWagered) %>
+                            </td>
+                            <td>
+                                <%= formatCurrency(stat.averageBet) %>
+                            </td>
+                            <td>
+                                <%= formatPercentage(stat.rtp) %>
+                            </td>
+                            <td>
+                                <span class="<%= stat.netUSD >= 0 ? 'profit' : 'loss' %>">
+                                    <%= formatCurrency(stat.netUSD) %>
+                                </span>
+                            </td>
+                        </tr>
+                        <% }); %>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section" id="monthly-stats">
+            <h2>Monthly Stats</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Plays</th>
+                        <th>Average Bet</th>
+                        <th>Total Wagered</th>
+                        <th>Total Rewards</th>
+                        <th>RTP %</th>
+                        <th>NET USD</th>
+                        <th>NET USD (inc. Rewards)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% reportMonthlyStats.forEach(stat=> { %>
+                        <tr>
+                            <td>
+                                <%= formatMonthYear(stat.month) %>
+                            </td>
+                            <td>
+                                <%= formatNumber(stat.plays) %>
+                            </td>
+                            <td>
+                                <%= formatCurrency(stat.averageBet) %>
+                            </td>
+                            <td>
+                                <%= formatCurrency(stat.totalWagered) %>
+                            </td>
+                            <td>
+                                <%= formatCurrency(stat.totalRewards) %>
+                            </td>
+                            <td>
+                                <%= formatPercentage(stat.rtp) %>
+                            </td>
+                            <td>
+                                <span class="<%= stat.netUSD >= 0 ? 'profit' : 'loss' %>">
+                                    <%= formatCurrency(stat.netUSD) %>
+                                </span>
+                            </td>
+                            <td>
+                                <span
+                                    class="<%= (Number(stat.netUSD) + Number(stat.totalRewards)) >= 0 ? 'profit' : 'loss' %>">
+                                    <%= formatCurrency(Number(stat.netUSD) + Number(stat.totalRewards)) %>
+                                </span>
+                            </td>
+                        </tr>
+                        <% }); %>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section" id="daily-stats">
+            <h2>Daily Stats</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Plays</th>
+                        <th>Average Bet</th>
+                        <th>Total Wagered</th>
+                        <th>RTP %</th>
+                        <th>NET USD</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% reportDailyStats.forEach(stat=> { %>
+                        <tr>
+                            <td>
+                                <%= stat.date %>
+                            </td>
+                            <td>
+                                <%= formatNumber(stat.plays) %>
+                            </td>
+                            <td>
+                                <%= formatCurrency(stat.averageBet) %>
+                            </td>
+                            <td>
+                                <%= formatCurrency(stat.totalWagered) %>
+                            </td>
+                            <td>
+                                <%= formatPercentage(stat.rtp) %>
+                            </td>
+                            <td>
+                                <span class="<%= stat.netUSD >= 0 ? 'profit' : 'loss' %>">
+                                    <%= formatCurrency(stat.netUSD) %>
+                                </span>
+                            </td>
+                        </tr>
+                        <% }); %>
+                </tbody>
+            </table>
+        </div>
+
+
+
+        <div class="section" id="games-section">
+            <h2>Game Stats</h2>
+            <div class="search-bar-container">
+                <input class="search-bar" type="text" id="search" placeholder="Search games...">
+            </div>
+        </div>
+
+        <div class="games-grid">
+            <% reportGameData.forEach(game=> { %>
+                <div class="game">
+                    <img src="<%= game.thumbnail %>" alt="<%= game.gameName %>">
+                    <div class="game-details">
+                        <div class="game-name">
+                            <%= game.gameName %>
+                        </div>
+
+                        <% game.currencySections.forEach(section=> { %>
+                            <div class="currency-section">
+                                <table>
+                                    <tr>
+                                        <th colspan="2">Currency: <%= section.currencyCode %>
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <td>Plays</td>
+                                        <td>
+                                            <%= formatNumber(section.plays) %>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Payouts</td>
+                                        <td>
+                                            <%= formatNumber(section.payouts) %>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Total Wagered</td>
+                                        <td>
+                                            <%= formatCurrency(section.totalWagered) %>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Average Bet</td>
+                                        <td>
+                                            <%= formatCurrency(section.averageBet) %>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>RTP %</td>
+                                        <td>
+                                            <%= formatPercentage(section.rtpPercent) %>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Net USD</td>
+                                        <td>
+                                            <span class="<%= section.netUSD >= 0 ? 'profit' : 'loss' %>">
+                                                <%= formatCurrency(section.netUSD) %>
+                                            </span>
+                                        </td>
+                                    </tr>
+
+                                </table>
+                            </div>
+                            <% }); %>
+
+                                <div class="total-net <%= game.totalNetUSD >= 0 ? 'profit' : 'loss' %>">Total Net
+                                    USD:
+                                    <%= formatCurrency(game.totalNetUSD) %>
+                                </div>
+                    </div>
+                </div>
+                <% }); %>
+
+        </div>
+
+        <!-- Back to Top Button -->
+        <button class="back-to-top" id="backToTopBtn">Back to Top</button>
+
+        <script>
+            // Show "Back to Top" button when scrolled down
+            const backToTopBtn = document.getElementById('backToTopBtn');
+
+            window.onscroll = function () {
+                if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
+                    backToTopBtn.classList.add('show-back-to-top');
+                } else {
+                    backToTopBtn.classList.remove('show-back-to-top');
+                }
+            };
+
+            // Scroll back to top when "Back to Top" button is clicked
+            backToTopBtn.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            document.getElementById('search').addEventListener('input', function () {
+                let filter = this.value.toLowerCase();
+                let games = document.getElementsByClassName('game');
+
+                Array.from(games).forEach(function (game) {
+                    let gameText = game.textContent || game.innerText;
+                    if (gameText.toLowerCase().includes(filter)) {
+                        game.style.display = '';
+                    } else {
+                        game.style.display = 'none';
+                    }
+                });
+            });
+
+
+        </script>
+        
+    </div>
+</body>
+
+</html>
