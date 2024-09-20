@@ -116,6 +116,8 @@ async function updateLocalFiles() {
     const newestId = getNewestId(urlType);
 
     try {
+      console.log(`Retrieving data for ${urlType}...`);
+
       const firstPageData = await fetchData(apiUrl, 1);
       if (!firstPageData) {
         console.log(`Error fetching new data for ${urlType}.`);
@@ -139,7 +141,10 @@ async function updateLocalFiles() {
       saveNewestId(urlType, maxId);
 
       for (let page = 2; page <= totalPages; page++) {
+        console.log(`Retrieving data for ${urlType} (${page} of ${totalPages})`);
+
         const pageData = await fetchData(METAWIN_ENDPOINTS.HISTORY, page);
+
         if (pageData) {
           if (newestId && pageData.items.some(item => item.id <= newestId)) {
             const newItems = pageData.items.filter(item => item.id > newestId);
