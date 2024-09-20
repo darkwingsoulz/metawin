@@ -54,9 +54,14 @@ async function fetchData(apiUrl, page) {
 
 function getNewestId(urlType) {
   const latestIdFile = path.join(__dirname, 'data', 'latest_id.json');
-  const data = JSON.parse(fs.readFileSync(latestIdFile, 'utf8'));
 
-  return data[urlType] || 0;
+  if (fs.existsSync(latestIdFile)) {
+    const data = JSON.parse(fs.readFileSync(latestIdFile, 'utf8'));
+
+    return data[urlType] || 0;
+  }
+
+  return 0;
 }
 
 function saveNewestId(urlType, newestId) {
