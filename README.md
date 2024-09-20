@@ -59,9 +59,16 @@ npm install
 ### 4. Create the .env File
 Copy the .env.sample file provided in the repo to a new .env file:
 
+Linux:
 ```bash
 cp .env.sample .env
 ```
+
+Windows:
+```bash
+copy .env.sample .env
+```
+
 Edit the .env file and add your values. For example:
 
 ```bash
