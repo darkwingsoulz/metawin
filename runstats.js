@@ -40,6 +40,7 @@ let rewardsByMonth = [];
 let reportOverallStatsByCurrency = [];
 let reportOverallStatsByGameType = [];
 let reportDailyStats = [];
+let reportProviderStats = [];
 let reportMonthlyStats = [];
 let reportGameData = [];
 
@@ -55,11 +56,10 @@ async function fetchData(apiUrl, page) {
 function getNewestId(urlType) {
   const latestIdFile = path.join(__dirname, 'data', 'latest_id.json');
 
-  let data = {}
-
   if (fs.existsSync(latestIdFile)) {
-    data = JSON.parse(fs.readFileSync(latestIdFile, 'utf8'));
-    return data[urlType]
+    const data = JSON.parse(fs.readFileSync(latestIdFile, 'utf8'));
+
+    return data[urlType] || 0;
   }
 
   return 0;
@@ -117,6 +117,8 @@ async function updateLocalFiles() {
     const newestId = getNewestId(urlType);
 
     try {
+      console.log(`Retrieving data for ${urlType}...`);
+
       const firstPageData = await fetchData(apiUrl, 1);
       if (!firstPageData) {
         console.log(`Error fetching new data for ${urlType}.`);
@@ -140,7 +142,10 @@ async function updateLocalFiles() {
       saveNewestId(urlType, maxId);
 
       for (let page = 2; page <= totalPages; page++) {
+        console.log(`Retrieving data for ${urlType} (${page} of ${totalPages})`);
+
         const pageData = await fetchData(METAWIN_ENDPOINTS.HISTORY, page);
+
         if (pageData) {
           if (newestId && pageData.items.some(item => item.id <= newestId)) {
             const newItems = pageData.items.filter(item => item.id > newestId);
@@ -158,10 +163,7 @@ async function updateLocalFiles() {
     }
   }
 
-
-
   console.log("Updating local files complete");
-
 }
 
 function readAllDataFromLocalFiles() {
@@ -183,12 +185,10 @@ function readAllDataFromLocalFiles() {
     }
   });
 
-  // Combine regular data with special data pushed to the end
   return [...historyData, ...otherData];
 }
 
 function getTimeDate(createTime) {
-  // Parse the date string into a Date object
   const dateObj = new Date(createTime);
 
   // Define the options for the date format, including the time zone
@@ -214,6 +214,7 @@ function processData(allData) {
   console.log("Data processing starting.");
 
   const stats = {};
+  const providerStats = {};
   const overallStats = { winsUSD: 0, lossesUSD: 0, lossesUSD7Days: 0, netUSD: 0, rewards: 0, currencies: {}, gameType: {} };
   const dailyNetUSD = {};
   const gameInfo = {};
@@ -253,17 +254,26 @@ function processData(allData) {
             ethRates[justTheDate] = parseFloat(providerCurrency.rate);
           }
 
+          let providerAndStudio = formatProviderAndStudio(game.provider, game.studio);
+
+          //provider stats
+          if (!providerStats[providerAndStudio]) {
+            providerStats[providerAndStudio] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0 };
+          }
+          //game stats
           if (!stats[gameName]) stats[gameName] = {};
           if (!gameInfo[gameName]) gameInfo[gameName] = { thumbnail: game.thumbnail };
           if (!stats[gameName][currencyCode]) {
             stats[gameName][currencyCode] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0 };
           }
+          //overall stats
           if (!overallStats.currencies[currencyCode]) {
             overallStats.currencies[currencyCode] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0 };
           }
           if (!overallStats.gameType[game.type]) {
             overallStats.gameType[game.type] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0 };
           }
+
           if (!dailyNetUSD[date]) {
             dailyNetUSD[date] = { netUSD: 0, plays: 0, betSize: 0 };
           }
@@ -274,10 +284,9 @@ function processData(allData) {
             if (dateCreateTime >= sevenDaysAgo && dateCreateTime <= now) {
               overallStats.lossesUSD7Days += amountInUSD;
             }
-
-            processBuyIn(stats, overallStats, dailyNetUSD, gameName, currencyCode, amountInUSD, date, game);
+            processBuyIn(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, currencyCode, amountInUSD, date, game);
           } else if (item.type === 'PayOut') {
-            processPayOut(stats, overallStats, dailyNetUSD, gameName, currencyCode, amountInUSD, date, game);
+            processPayOut(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, currencyCode, amountInUSD, date, game);
           }
           else if (item.type === 'Rollback') {
             //refund player
@@ -391,13 +400,17 @@ function processData(allData) {
 
   console.log("Data processing completed.");
 
-  return { stats, overallStats, dailyNetUSD, gameInfo };
+  return { stats, providerStats, overallStats, dailyNetUSD, gameInfo };
 }
 
-function processBuyIn(stats, overallStats, dailyNetUSD, gameName, currencyCode, amountInUSD, date, game) {
+function processBuyIn(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, currencyCode, amountInUSD, date, game) {
   stats[gameName][currencyCode].netUSD -= amountInUSD;
   stats[gameName][currencyCode].plays++;
   stats[gameName][currencyCode].lossesUSD += amountInUSD;
+
+  providerStats[providerAndStudio].netUSD -= amountInUSD;
+  providerStats[providerAndStudio].plays++;
+  providerStats[providerAndStudio].lossesUSD += amountInUSD;
 
   overallStats.currencies[currencyCode].netUSD -= amountInUSD;
   overallStats.currencies[currencyCode].plays++;
@@ -414,10 +427,14 @@ function processBuyIn(stats, overallStats, dailyNetUSD, gameName, currencyCode, 
   dailyNetUSD[date].betSize += amountInUSD;
 }
 
-function processPayOut(stats, overallStats, dailyNetUSD, gameName, currencyCode, amountInUSD, date, game) {
+function processPayOut(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, currencyCode, amountInUSD, date, game) {
   stats[gameName][currencyCode].winsUSD += amountInUSD;
   stats[gameName][currencyCode].netUSD += amountInUSD;
   stats[gameName][currencyCode].payouts++;
+
+  providerStats[providerAndStudio].winsUSD += amountInUSD;
+  providerStats[providerAndStudio].netUSD += amountInUSD;
+  providerStats[providerAndStudio].payouts++;
 
   overallStats.currencies[currencyCode].winsUSD += amountInUSD;
   overallStats.currencies[currencyCode].netUSD += amountInUSD;
@@ -443,7 +460,7 @@ function formatNumber(number) {
   return new Intl.NumberFormat('en-US').format(number);
 }
 
-function prepareReport(stats, overallStats, dailyNetUSD, gameInfo) {
+function prepareReport(stats, providerStats, overallStats, dailyNetUSD, gameInfo) {
 
   function calculateGameNetUSD(gameStats) {
     let gameNetUSD = 0;
@@ -508,6 +525,23 @@ function prepareReport(stats, overallStats, dailyNetUSD, gameInfo) {
     });
   }
 
+  console.log('\nCalculating overall stats by provider');
+
+  for (const provider in providerStats) {
+    const { winsUSD, lossesUSD, netUSD, plays } = providerStats[provider];;
+
+    reportProviderStats.push({
+      provider,
+      plays,
+      totalWagered: lossesUSD,
+      averageBet: lossesUSD / plays,
+      netUSD,
+      rtp: ((winsUSD / lossesUSD) * 100).toFixed(2)
+    });
+  }
+
+  reportProviderStats.sort((a, b) => a.provider.localeCompare(b.provider));
+
   console.log('\nCalculating overall stats by game type');
 
   for (const gameType in overallStats.gameType) {
@@ -528,8 +562,6 @@ function prepareReport(stats, overallStats, dailyNetUSD, gameInfo) {
     .sort((a, b) => new Date(b) - new Date(a));
 
   console.log('\nCalculating Daily Statistics');
-
-
 
   // Grouping by month
   const monthlyStats = {};
@@ -587,6 +619,13 @@ function prepareReport(stats, overallStats, dailyNetUSD, gameInfo) {
     });
 }
 
+function formatProviderAndStudio(providerName, studio) {
+  if (!studio || providerName.toLowerCase() === studio.toLowerCase()) {
+    return providerName;
+  }
+  return studio.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 function findClosestRate(date) {
   const availableDates = Object.keys(ethRates);
   let closestDate = availableDates[0];
@@ -630,9 +669,9 @@ async function main() {
   const localData = readAllDataFromLocalFiles();
   console.log("Reading Data files complete");
   if (localData.length > 0) {
-    const { stats, overallStats, dailyNetUSD, gameInfo } = processData(localData);
+    const { stats, providerStats, overallStats, dailyNetUSD, gameInfo } = processData(localData);
 
-    prepareReport(stats, overallStats, dailyNetUSD, gameInfo);
+    prepareReport(stats, providerStats, overallStats, dailyNetUSD, gameInfo);
 
     try {
       ejs.renderFile('results_template.ejs', {
@@ -641,6 +680,7 @@ async function main() {
         reportMonthlyStats: reportMonthlyStats,
         reportDailyStats: reportDailyStats,
         reportGameData: reportGameData,
+        reportProviderStats: reportProviderStats,
         overallStats: overallStats,
         formatCurrency: function (amount) {
           return formatCurrency(amount);
