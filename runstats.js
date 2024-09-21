@@ -151,6 +151,7 @@ async function updateLocalFiles() {
             const newItems = pageData.items.filter(item => item.id > newestId);
             pageData.items = newItems;
             await saveData(urlType, pageData, page);
+            console.log("No additional pages needed and can be skipped!");
             break;
           } else {
             await saveData(urlType, pageData, page);
