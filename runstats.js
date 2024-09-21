@@ -623,7 +623,7 @@ function formatProviderAndStudio(providerName, studio) {
   if (!studio || providerName.toLowerCase() === studio.toLowerCase()) {
     return providerName;
   }
-  return providerName + " / " + studio.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+  return studio.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function findClosestRate(date) {
