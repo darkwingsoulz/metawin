@@ -237,6 +237,9 @@ function processData(allData) {
         if (item.type === 'BuyIn' || item.type === 'PayOut') {
           const { currencyCode, game, providerCurrency, createTime } = item;
 
+          //TODO: cannot currently handle other currencies without rate table
+          if (providerCurrency.code !== "USD") return;
+
           let gameName = game.name;
 
           // Normalize game names
