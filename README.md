@@ -95,7 +95,7 @@ For future runs, always get a new token bearer to place in your ENV file.
 After setting up the .env file, you can run the project using:
 
 ```bash
-node runstat.js
+node runstats.js
 ```
 
 ### 6. Viewing the Report
