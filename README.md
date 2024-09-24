@@ -78,9 +78,10 @@ BATCH_SIZE=25
 ```
 Retrieving the TOKEN_BEARER:
 Go to the MetaWin website and log in.
+Go to My Profile -> History -> Games (Tab next to the Competition tab) 
 Open your browser's developer console (F12 or right-click and select "Inspect").
-Go to the Network tab, then perform any game-related action (e.g., check your game history).
-Look for a network request to the Game History endpoint.
+Go to the Network tab, then refresh the Game history page
+Look for a network request to the Game History endpoint called "action?page=..."
 Click on that request, go to the Headers tab, and find the Authorization header. The value after Bearer is your TOKEN_BEARER.
 
 ### 5. Running the Project
