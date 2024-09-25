@@ -1,5 +1,6 @@
 output/
 data/
+untracked-rewards.json
 
 # Logs
 logs

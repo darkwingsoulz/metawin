@@ -656,11 +656,35 @@ function createOutputFolder() {
   }
 }
 
+/*
+Handles the case of direct compensations not tracked from history
+This includes cases such as payout malfunctions that are later compensated by customer support
+Or direct compensation by MetaWin for VIP customers
+*/
+const loadUntrackedRewards = () => {
+  const path = './untracked-rewards.json';
+  if (fs.existsSync(path)) {
+    try {
+      const data = fs.readFileSync(path, 'utf-8');
+      const rewards = JSON.parse(data);
+      return rewards || {};
+    } catch {
+      return {};
+    }
+  } else {
+    return {};
+  }
+};
+
 async function main() {
   createDataFolder();
   createOutputFolder();
-
   upgradeLatestFileFormat();
+
+  const untrackedRewards = loadUntrackedRewards();
+  for (const [month, reward] of Object.entries(untrackedRewards)) {
+    rewardsByMonth[month] = reward;
+  }
 
   try {
     await updateLocalFiles();
