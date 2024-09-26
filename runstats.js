@@ -172,6 +172,13 @@ function readAllDataFromLocalFiles() {
   const historyData = [];
   const otherData = [];
 
+  const untrackedGamesFilePath = path.join(__dirname, 'untracked-games.json');
+  if (fs.existsSync(untrackedGamesFilePath)) {
+    const untrackedGamesData = JSON.parse(fs.readFileSync(untrackedGamesFilePath, 'utf8'));
+    if (untrackedGamesData.items && untrackedGamesData.items.length > 0)
+      historyData.push(untrackedGamesData);
+  }
+
   fs.readdirSync(dir).forEach(file => {
     if (file.endsWith('.json') && file !== 'latest_id.json') {
       const data = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
