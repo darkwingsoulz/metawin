@@ -302,6 +302,42 @@
                 font-size: 14px;
             }
         }
+
+        .copy-button {
+            margin-left: 15px;
+            background-color: #ff4081;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .copy-button:hover {
+            background-color: #ff79a8;
+            box-shadow: 0 4px 10px rgba(255, 64, 129, 0.5);
+        }
+
+        .copy-button:active {
+            background-color: #ff4081;
+            box-shadow: 0 2px 5px rgba(255, 64, 129, 0.7);
+        }
+
+        .copy-button:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 64, 129, 0.5);
+        }
+
+        .copy-button:before {
+            content: '\1F4CB';
+            /* Clipboard icon */
+            margin-right: 8px;
+            font-size: 16px;
+        }
     </style>
 </head>
 
@@ -317,10 +353,33 @@
         <a href="#monthly-stats">Monthly Stats</a>
         <a href="#daily-stats">Daily Stats</a>
         <a href="#games-section">Game Stats</a>
-        <!--TODO <a href="#rewards">Rewards</a>-->
     </div>
 
     <div class="container" id="top">
+        <div class="section" id="donation">
+            <h2>Donations</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ethereum Address</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <span>0x90fCf38FcE6250e9E0187E32C388971aafDD5426</span>
+                            <button class="copy-button" onclick="copyToClipboard()">Copy Address</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="info-blurb">
+                If you find this report helpful and want to show your appreciation, consider donating Ethereum to the
+                address above.
+                This report is brought to you by <strong>dwsoulz</strong>. Your support is greatly appreciated!
+            </p>
+        </div>
+
         <!-- Summary -->
         <div class="section" id="summary">
             <h2>Summary</h2>
@@ -704,9 +763,15 @@
                 });
             });
 
-
+            function copyToClipboard() {
+                const ethAddress = "0x90fCf38FcE6250e9E0187E32C388971aafDD5426";
+                navigator.clipboard.writeText(ethAddress).then(() => {
+                    alert("Ethereum address copied to clipboard: " + ethAddress);
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+            }
         </script>
-
     </div>
 </body>
 
