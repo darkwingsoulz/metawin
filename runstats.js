@@ -591,8 +591,13 @@ function prepareReport(stats, providerStats, overallStats, dailyNetUSD, gameInfo
       rtp: dailyRTP
     });
 
+    const formatMonthYear = (date) => {
+      const [year, month] = date.split('-');
+      return `${year}-${month}`;
+    };
+
     // Monthly stats for all data
-    const monthKey = getMonthKey(date);
+    const monthKey = formatMonthYear(date);
     if (!monthlyStats[monthKey]) {
       monthlyStats[monthKey] = {
         netUSD: 0,
