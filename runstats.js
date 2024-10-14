@@ -16,7 +16,9 @@ const METAWIN_ENDPOINTS = {
   HISTORY: 'https://api.prod.platform.metawin.com/game/action',
   NOTIFICATIONS: 'https://api.prod.platform.metawin.com/notification',
   CLAIMS: 'https://api.prod.platform.metawin.com/inventory',
-  REWARDS: 'https://api.prod.platform.metawin.com/reward',
+  REWARDS: 'https://api.prod.platform.metawin.com/reward'/*,
+  HILO: 'https://api.prod.platform.mwapp.io/game/history/hilo',
+  CRASH: 'https://api.prod.platform.mwapp.io/game/history/crash'*/
 };
 
 const headers = {
@@ -227,6 +229,7 @@ function processData(allData) {
   const dailyNetUSD = {};
   const gameInfo = {};
   const totalBatches = Math.ceil(allData.length / BATCH_SIZE);
+  const roundTracker = {};
 
   for (let batch = 0; batch < totalBatches; batch++) {
     console.log(`Processing batch ${batch + 1} of ${totalBatches}`);
@@ -271,12 +274,14 @@ function processData(allData) {
           if (!providerStats[providerAndStudio]) {
             providerStats[providerAndStudio] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0 };
           }
+
           //game stats
           if (!stats[gameName]) stats[gameName] = {};
           if (!gameInfo[gameName]) gameInfo[gameName] = { thumbnail: game.thumbnail };
           if (!stats[gameName][currencyCode]) {
-            stats[gameName][currencyCode] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0 };
+            stats[gameName][currencyCode] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0, bestMulti: 0, bestWinUSD: 0 };
           }
+
           //overall stats
           if (!overallStats.currencies[currencyCode]) {
             overallStats.currencies[currencyCode] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0 };
@@ -287,6 +292,31 @@ function processData(allData) {
 
           if (!dailyNetUSD[date]) {
             dailyNetUSD[date] = { netUSD: 0, plays: 0, betSize: 0 };
+          }
+
+          if (!roundTracker[item.roundId])
+            roundTracker[item.roundId] = { buy: 0, payout: 0 };
+
+          if (item.type === 'BuyIn') {
+            roundTracker[item.roundId].buy = amountInUSD;
+          }
+          else if (item.type === 'PayOut') {
+            roundTracker[item.roundId].payout = amountInUSD;
+          }
+
+          if (roundTracker[item.roundId].buy && roundTracker[item.roundId].payout) {
+
+            let buyAmount = roundTracker[item.roundId].buy;
+            let payoutAmount = roundTracker[item.roundId].payout;
+
+            // Calculate multiplier for round
+            let roundMultiplier = (payoutAmount / buyAmount);
+
+            if (stats[gameName][currencyCode].bestMulti < roundMultiplier)
+              stats[gameName][currencyCode].bestMulti = roundMultiplier;
+
+            if (stats[gameName][currencyCode].bestWinUSD < payoutAmount)
+              stats[gameName][currencyCode].bestWinUSD = payoutAmount;
           }
 
           // Handle BuyIn and PayOut types
@@ -499,7 +529,7 @@ function prepareReport(stats, providerStats, overallStats, dailyNetUSD, gameInfo
     const currencySections = [];
 
     for (const currencyCode in stats[gameName]) {
-      const { winsUSD, lossesUSD, netUSD, plays, payouts } = stats[gameName][currencyCode];
+      const { winsUSD, lossesUSD, netUSD, plays, payouts, bestMulti, bestWinUSD } = stats[gameName][currencyCode];
 
       currencySections.push({
         currencyCode,
@@ -507,6 +537,8 @@ function prepareReport(stats, providerStats, overallStats, dailyNetUSD, gameInfo
         payouts,
         totalWagered: lossesUSD,
         averageBet: lossesUSD / plays,
+        bestMulti: bestMulti,
+        bestWinUSD: bestWinUSD,
         netUSD: netUSD,
         rtpPercent: ((winsUSD / lossesUSD) * 100),
       });
@@ -722,6 +754,9 @@ async function main() {
         reportGameData: reportGameData,
         reportProviderStats: reportProviderStats,
         overallStats: overallStats,
+        formatMultiplier: function (amount) {
+          return amount.toFixed(0);
+        },
         formatCurrency: function (amount) {
           return formatCurrency(amount);
         },
