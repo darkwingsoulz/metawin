@@ -514,7 +514,7 @@ function prepareReport(stats, providerStats, overallStats, dailyNetUSD, gameInfo
         bestMulti: stats[gameName].bestMulti,
         bestWinUSD: stats[gameName].bestWinUSD,
         netUSD: stats[gameName].netUSD,
-        rtpPercent: ((stats[gameName].winsUSD / stats[gameName].lossesUSD) * 100),
+        rtpPercent: stats[gameName].lossesUSD !== 0 ? ((stats[gameName].winsUSD / stats[gameName].lossesUSD) * 100) : 0,
       });
     }
   }
