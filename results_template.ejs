@@ -669,72 +669,62 @@
                             <%= game.gameName %>
                         </div>
 
-                        <% game.currencySections.forEach(section=> { %>
-                            <div class="currency-section">
-                                <table>
-                                    <tr>
-                                        <th colspan="2">Currency: <%= section.currencyCode %>
-                                        </th>
-                                    </tr>
-                                    <tr>
-                                        <td>Plays</td>
-                                        <td>
-                                            <%= formatNumber(section.plays) %>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Payouts</td>
-                                        <td>
-                                            <%= formatNumber(section.payouts) %>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Total Wagered</td>
-                                        <td>
-                                            <%= formatCurrency(section.totalWagered) %>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Average Bet</td>
-                                        <td>
-                                            <%= formatCurrency(section.averageBet) %>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Best Multi</td>
-                                        <td>
-                                            <%= formatMultiplier(section.bestMulti) %>X
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Best Win</td>
-                                        <td>
-                                            <%= formatCurrency(section.bestWinUSD) %>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>RTP %</td>
-                                        <td>
-                                            <%= formatPercentage(section.rtpPercent) %>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Net USD</td>
-                                        <td>
-                                            <span class="<%= section.netUSD >= 0 ? 'profit' : 'loss' %>">
-                                                <%= formatCurrency(section.netUSD) %>
-                                            </span>
-                                        </td>
-                                    </tr>
 
-                                </table>
-                            </div>
-                            <% }); %>
+                        <div class="currency-section">
+                            <table>
+                                <tr>
+                                    <td>Plays</td>
+                                    <td>
+                                        <%= formatNumber(game.plays) %>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Payouts</td>
+                                    <td>
+                                        <%= formatNumber(game.payouts) %>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Total Wagered</td>
+                                    <td>
+                                        <%= formatCurrency(game.totalWagered) %>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Average Bet</td>
+                                    <td>
+                                        <%= formatCurrency(game.averageBet) %>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Best Multi</td>
+                                    <td>
+                                        <%= formatMultiplier(game.bestMulti) %>X
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Best Win</td>
+                                    <td>
+                                        <%= formatCurrency(game.bestWinUSD) %>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>RTP %</td>
+                                    <td>
+                                        <%= formatPercentage(game.rtpPercent) %>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Net USD</td>
+                                    <td>
+                                        <span class="<%= game.netUSD >= 0 ? 'profit' : 'loss' %>">
+                                            <%= formatCurrency(game.netUSD) %>
+                                        </span>
+                                    </td>
+                                </tr>
 
-                                <div class="total-net <%= game.totalNetUSD >= 0 ? 'profit' : 'loss' %>">Total Net
-                                    USD:
-                                    <%= formatCurrency(game.totalNetUSD) %>
-                                </div>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 <% }); %>

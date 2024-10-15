@@ -276,11 +276,8 @@ function processData(allData) {
           }
 
           //game stats
-          if (!stats[gameName]) stats[gameName] = {};
+          if (!stats[gameName]) stats[gameName] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0, bestMulti: 0, bestWinUSD: 0 };
           if (!gameInfo[gameName]) gameInfo[gameName] = { thumbnail: game.thumbnail };
-          if (!stats[gameName][currencyCode]) {
-            stats[gameName][currencyCode] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0, bestMulti: 0, bestWinUSD: 0 };
-          }
 
           //overall stats
           if (!overallStats.currencies[currencyCode]) {
@@ -312,11 +309,11 @@ function processData(allData) {
             // Calculate multiplier for round
             let roundMultiplier = (payoutAmount / buyAmount);
 
-            if (stats[gameName][currencyCode].bestMulti < roundMultiplier)
-              stats[gameName][currencyCode].bestMulti = roundMultiplier;
+            if (stats[gameName].bestMulti < roundMultiplier)
+              stats[gameName].bestMulti = roundMultiplier;
 
-            if (stats[gameName][currencyCode].bestWinUSD < payoutAmount)
-              stats[gameName][currencyCode].bestWinUSD = payoutAmount;
+            if (stats[gameName].bestWinUSD < payoutAmount)
+              stats[gameName].bestWinUSD = payoutAmount;
           }
 
           // Handle BuyIn and PayOut types
@@ -445,9 +442,9 @@ function processData(allData) {
 }
 
 function processBuyIn(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, currencyCode, amountInUSD, date, game) {
-  stats[gameName][currencyCode].netUSD -= amountInUSD;
-  stats[gameName][currencyCode].plays++;
-  stats[gameName][currencyCode].lossesUSD += amountInUSD;
+  stats[gameName].netUSD -= amountInUSD;
+  stats[gameName].plays++;
+  stats[gameName].lossesUSD += amountInUSD;
 
   providerStats[providerAndStudio].netUSD -= amountInUSD;
   providerStats[providerAndStudio].plays++;
@@ -469,9 +466,9 @@ function processBuyIn(stats, providerStats, providerAndStudio, overallStats, dai
 }
 
 function processPayOut(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, currencyCode, amountInUSD, date, game) {
-  stats[gameName][currencyCode].winsUSD += amountInUSD;
-  stats[gameName][currencyCode].netUSD += amountInUSD;
-  stats[gameName][currencyCode].payouts++;
+  stats[gameName].winsUSD += amountInUSD;
+  stats[gameName].netUSD += amountInUSD;
+  stats[gameName].payouts++;
 
   providerStats[providerAndStudio].winsUSD += amountInUSD;
   providerStats[providerAndStudio].netUSD += amountInUSD;
@@ -502,21 +499,11 @@ function formatNumber(number) {
 }
 
 function prepareReport(stats, providerStats, overallStats, dailyNetUSD, gameInfo) {
-
-  function calculateGameNetUSD(gameStats) {
-    let gameNetUSD = 0;
-    for (const currencyCode in gameStats) {
-      const { netUSD } = gameStats[currencyCode];
-      gameNetUSD += netUSD;
-    }
-    return gameNetUSD;
-  }
-
   const gameNames = Object.keys(stats).sort();
 
   const gameNetUSDArr = gameNames.map(gameName => ({
     gameName,
-    gameNetUSD: calculateGameNetUSD(stats[gameName]),
+    gameNetUSD: stats[gameName].netUSD,
   }));
 
   gameNetUSDArr.sort((a, b) => b.gameNetUSD - a.gameNetUSD);
@@ -524,32 +511,17 @@ function prepareReport(stats, providerStats, overallStats, dailyNetUSD, gameInfo
   console.log('\nCalculating Game Statistics:');
 
   for (const { gameName } of gameNetUSDArr) {
-    let gameNetUSD = 0;
-
-    const currencySections = [];
-
-    for (const currencyCode in stats[gameName]) {
-      const { winsUSD, lossesUSD, netUSD, plays, payouts, bestMulti, bestWinUSD } = stats[gameName][currencyCode];
-
-      currencySections.push({
-        currencyCode,
-        plays,
-        payouts,
-        totalWagered: lossesUSD,
-        averageBet: lossesUSD / plays,
-        bestMulti: bestMulti,
-        bestWinUSD: bestWinUSD,
-        netUSD: netUSD,
-        rtpPercent: ((winsUSD / lossesUSD) * 100),
-      });
-      gameNetUSD += netUSD;
-    }
-
     reportGameData.push({
       gameName,
       thumbnail: gameInfo[gameName].thumbnail,
-      currencySections,
-      totalNetUSD: gameNetUSD
+      plays: stats[gameName].plays,
+      payouts: stats[gameName].payouts,
+      totalWagered: stats[gameName].lossesUSD,
+      averageBet: stats[gameName].lossesUSD / stats[gameName].plays,
+      bestMulti: stats[gameName].bestMulti,
+      bestWinUSD: stats[gameName].bestWinUSD,
+      netUSD: stats[gameName].netUSD,
+      rtpPercent: ((stats[gameName].winsUSD / stats[gameName].lossesUSD) * 100),
     });
   }
 
