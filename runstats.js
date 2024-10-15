@@ -232,7 +232,8 @@ function processData(allData) {
   const roundTracker = {};
 
   for (let batch = 0; batch < totalBatches; batch++) {
-    console.log(`Processing batch ${batch + 1} of ${totalBatches}`);
+    let percentComplete = ((batch + 1) / totalBatches) * 100;
+    console.log(`Processing stats ${percentComplete.toFixed(2)}% complete`);
 
     // Slice the data into smaller batches
     const batchData = allData.slice(batch * BATCH_SIZE, (batch + 1) * BATCH_SIZE);
@@ -499,30 +500,23 @@ function formatNumber(number) {
 }
 
 function prepareReport(stats, providerStats, overallStats, dailyNetUSD, gameInfo) {
-  const gameNames = Object.keys(stats).sort();
-
-  const gameNetUSDArr = gameNames.map(gameName => ({
-    gameName,
-    gameNetUSD: stats[gameName].netUSD,
-  }));
-
-  gameNetUSDArr.sort((a, b) => b.gameNetUSD - a.gameNetUSD);
-
   console.log('\nCalculating Game Statistics:');
 
-  for (const { gameName } of gameNetUSDArr) {
-    reportGameData.push({
-      gameName,
-      thumbnail: gameInfo[gameName].thumbnail,
-      plays: stats[gameName].plays,
-      payouts: stats[gameName].payouts,
-      totalWagered: stats[gameName].lossesUSD,
-      averageBet: stats[gameName].lossesUSD / stats[gameName].plays,
-      bestMulti: stats[gameName].bestMulti,
-      bestWinUSD: stats[gameName].bestWinUSD,
-      netUSD: stats[gameName].netUSD,
-      rtpPercent: ((stats[gameName].winsUSD / stats[gameName].lossesUSD) * 100),
-    });
+  for (const gameName in stats) {
+    if (stats.hasOwnProperty(gameName)) {
+      reportGameData.push({
+        gameName,
+        thumbnail: gameInfo[gameName].thumbnail,
+        plays: stats[gameName].plays,
+        payouts: stats[gameName].payouts,
+        totalWagered: stats[gameName].lossesUSD,
+        averageBet: stats[gameName].lossesUSD / stats[gameName].plays,
+        bestMulti: stats[gameName].bestMulti,
+        bestWinUSD: stats[gameName].bestWinUSD,
+        netUSD: stats[gameName].netUSD,
+        rtpPercent: ((stats[gameName].winsUSD / stats[gameName].lossesUSD) * 100),
+      });
+    }
   }
 
   console.log('\nCalculating overall stats by currency');

@@ -232,14 +232,6 @@
             background-color: #3a3a3a;
         }
 
-        /* Total net styling */
-        .total-net {
-            font-size: 16px;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-
-        /* Add spacing between different game sections */
         .game-details {
             text-align: left;
         }
@@ -304,10 +296,6 @@
             .currency-section td {
                 font-size: 12px;
             }
-
-            .total-net {
-                font-size: 14px;
-            }
         }
 
         .copy-button {
@@ -341,9 +329,55 @@
 
         .copy-button:before {
             content: '\1F4CB';
-            /* Clipboard icon */
             margin-right: 8px;
             font-size: 16px;
+        }
+
+        .sort-options {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+        }
+
+        .sort-options h4 {
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        .sort-group {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .sort-group .sort-label {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .sort-group input[type="radio"] {
+            margin-right: 5px;
+            accent-color: #007BFF;
+        }
+
+        .sort-group label {
+            margin-right: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        label span {
+            margin-right: 5px;
+            font-size: 1.2rem;
+        }
+
+        input[type="radio"]:checked+label {
+            color: #007BFF;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -658,12 +692,43 @@
             </table>
         </div>
 
-
-
         <div class="section" id="games-section">
             <h2>Game Stats</h2>
             <div class="search-bar-container">
                 <input class="search-bar" type="text" id="search" placeholder="Search games...">
+            </div>
+            <div class="sort-options">
+                <div class="sort-group">
+                    <div class="sort-label">Best Multi</div>
+                    <input type="radio" name="sort" value="bestMulti-asc" id="bestMulti-asc">
+                    <label for="bestMulti-asc"><span>&uarr;</span> Asc</label>
+                    <input type="radio" name="sort" value="bestMulti-desc" id="bestMulti-desc">
+                    <label for="bestMulti-desc"><span>&darr;</span> Desc</label>
+                </div>
+
+                <div class="sort-group">
+                    <div class="sort-label">Best Win</div>
+                    <input type="radio" name="sort" value="bestWin-asc" id="bestWin-asc">
+                    <label for="bestWin-asc"><span>&uarr;</span> Asc</label>
+                    <input type="radio" name="sort" value="bestWin-desc" id="bestWin-desc">
+                    <label for="bestWin-desc"><span>&darr;</span> Desc</label>
+                </div>
+
+                <div class="sort-group">
+                    <div class="sort-label">RTP</div>
+                    <input type="radio" name="sort" value="rtp-asc" id="rtp-asc">
+                    <label for="rtp-asc"><span>&uarr;</span> Asc</label>
+                    <input type="radio" name="sort" value="rtp-desc" id="rtp-desc">
+                    <label for="rtp-desc"><span>&darr;</span> Desc</label>
+                </div>
+
+                <div class="sort-group">
+                    <div class="sort-label">Net USD</div>
+                    <input type="radio" name="sort" value="netUSD-asc" id="netUSD-asc">
+                    <label for="netUSD-asc"><span>&uarr;</span> Asc</label>
+                    <input type="radio" name="sort" value="netUSD-desc" id="netUSD-desc">
+                    <label for="netUSD-desc"><span>&darr;</span> Desc</label>
+                </div>
             </div>
         </div>
 
@@ -758,6 +823,15 @@
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             });
 
+            function copyToClipboard() {
+                const ethAddress = "0x90fCf38FcE6250e9E0187E32C388971aafDD5426";
+                navigator.clipboard.writeText(ethAddress).then(() => {
+                    alert("Ethereum address copied to clipboard: " + ethAddress);
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+            }
+
             document.getElementById('search').addEventListener('input', function () {
                 let filter = this.value.toLowerCase();
                 let games = document.getElementsByClassName('game');
@@ -772,14 +846,69 @@
                 });
             });
 
-            function copyToClipboard() {
-                const ethAddress = "0x90fCf38FcE6250e9E0187E32C388971aafDD5426";
-                navigator.clipboard.writeText(ethAddress).then(() => {
-                    alert("Ethereum address copied to clipboard: " + ethAddress);
-                }).catch(err => {
-                    console.error('Failed to copy: ', err);
+            const sortOptions = document.querySelectorAll('input[name="sort"]');
+            sortOptions.forEach(option => {
+                option.addEventListener('change', function () {
+                    let selectedValue = this.value.split('-');
+                    let field = selectedValue[0];
+                    let order = selectedValue[1];
+                    sortGames(field, order);
                 });
+            });
+
+            function sortGames(field, order) {
+                let gamesContainer = document.querySelector('.games-grid');
+                let games = Array.from(document.getElementsByClassName('game'));
+
+                // Sort the games array based on the field and order
+                games.sort((a, b) => {
+                    let aValue = getFieldValue(a, field);
+                    let bValue = getFieldValue(b, field);
+
+                    if (order === 'asc') {
+                        return aValue - bValue;
+                    } else {
+                        return bValue - aValue;
+                    }
+                });
+
+                // Re-attach sorted games to the container
+                games.forEach(game => gamesContainer.appendChild(game));
             }
+
+            function getFieldValue(gameElement, field) {
+                let rows = gameElement.querySelectorAll('.currency-section table tr');
+
+                // Find the value based on the field
+                for (let row of rows) {
+                    let label = row.querySelector('td:first-child').textContent.trim();
+                    let value = row.querySelector('td:last-child').textContent.trim();
+
+                    switch (field) {
+                        case 'bestMulti':
+                            if (label === 'Best Multi') return parseFloat(value.replace('X', ''));
+                            break;
+                        case 'bestWin':
+                            if (label === 'Best Win') return parseFloat(value.replace('$', '').replace(',', ''));
+                            break;
+                        case 'rtp':
+                            if (label === 'RTP %') return parseFloat(value.replace('%', ''));
+                            break;
+                        case 'netUSD':
+                            if (label === 'Net USD') return parseFloat(value.replace('$', '').replace(',', ''));
+                            break;
+                    }
+                }
+                return 0; // Return a default value if not found
+            }
+
+            // Default sort to Net USD (Descending)
+            window.addEventListener('load', function () {
+                document.getElementById('netUSD-desc').checked = true;  // Set default radio to Net USD Descending
+                sortGames('netUSD', 'desc');
+            });
+
+
         </script>
     </div>
 </body>
