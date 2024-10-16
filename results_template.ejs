@@ -388,7 +388,6 @@
     <div class="nav-bar">
         <span class="metawin-label">MetaWin</span>
         <a href="#summary">Summary</a>
-        <a href="#currency-stats">Currency Stats</a>
         <a href="#provider-stats">Provider Stats</a>
         <a href="#game-type-stats">Game Type Stats</a>
         <a href="#monthly-stats">Monthly Stats</a>
@@ -480,49 +479,6 @@
                 Keep in mind, <strong>playable ETH</strong> is still counted as a reward, as any wagers made with it are
                 reflected in your net totals.
             </p>
-        </div>
-
-        <!-- Overall Stats By Currency Section -->
-        <div class="section" id="currency-stats">
-            <h2>Overall Stats By Currency</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Currency</th>
-                        <th>Plays</th>
-                        <th>Total Wagered</th>
-                        <th>Average Bet</th>
-                        <th>RTP %</th>
-                        <th>Net USD</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% reportOverallStatsByCurrency.forEach(stat=> { %>
-                        <tr>
-                            <td>
-                                <%= stat.currencyCode %>
-                            </td>
-                            <td>
-                                <%= formatNumber(stat.plays) %>
-                            </td>
-                            <td>
-                                <%= formatCurrency(stat.totalWagered) %>
-                            </td>
-                            <td>
-                                <%= formatCurrency(stat.averageBet) %>
-                            </td>
-                            <td>
-                                <%= formatPercentage(stat.rtp) %>
-                            </td>
-                            <td>
-                                <span class="<%= stat.netUSD >= 0 ? 'profit' : 'loss' %>">
-                                    <%= formatCurrency(stat.netUSD) %>
-                                </span>
-                            </td>
-                        </tr>
-                        <% }); %>
-                </tbody>
-            </table>
         </div>
 
         <!-- Overall Stats By Provider Section -->

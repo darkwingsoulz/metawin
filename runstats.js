@@ -39,7 +39,6 @@ const getMonthKey = (date) => {
 };
 
 let rewardsByMonth = [];
-let reportOverallStatsByCurrency = [];
 let reportOverallStatsByGameType = [];
 let reportDailyStats = [];
 let reportProviderStats = [];
@@ -246,7 +245,7 @@ function processData(allData) {
         if (item.type === 'SweepstakeEntry') return;
 
         if (item.type === 'BuyIn' || item.type === 'PayOut') {
-          const { currencyCode, game, providerCurrency, createTime } = item;
+          const { game, providerCurrency, createTime } = item;
 
           //TODO: cannot currently handle other currencies without rate table
           if (providerCurrency.code !== "USD") return;
@@ -281,9 +280,6 @@ function processData(allData) {
           if (!gameInfo[gameName]) gameInfo[gameName] = { thumbnail: game.thumbnail };
 
           //overall stats
-          if (!overallStats.currencies[currencyCode]) {
-            overallStats.currencies[currencyCode] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0 };
-          }
           if (!overallStats.gameType[game.type]) {
             overallStats.gameType[game.type] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0 };
           }
@@ -323,9 +319,9 @@ function processData(allData) {
             if (dateCreateTime >= sevenDaysAgo && dateCreateTime <= now) {
               overallStats.lossesUSD7Days += amountInUSD;
             }
-            processBuyIn(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, currencyCode, amountInUSD, date, game);
+            processBuyIn(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, amountInUSD, date, game);
           } else if (item.type === 'PayOut') {
-            processPayOut(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, currencyCode, amountInUSD, date, game);
+            processPayOut(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, amountInUSD, date, game);
           }
           else if (item.type === 'Rollback') {
             //refund player
@@ -442,7 +438,7 @@ function processData(allData) {
   return { stats, providerStats, overallStats, dailyNetUSD, gameInfo };
 }
 
-function processBuyIn(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, currencyCode, amountInUSD, date, game) {
+function processBuyIn(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, amountInUSD, date, game) {
   stats[gameName].netUSD -= amountInUSD;
   stats[gameName].plays++;
   stats[gameName].lossesUSD += amountInUSD;
@@ -451,9 +447,6 @@ function processBuyIn(stats, providerStats, providerAndStudio, overallStats, dai
   providerStats[providerAndStudio].plays++;
   providerStats[providerAndStudio].lossesUSD += amountInUSD;
 
-  overallStats.currencies[currencyCode].netUSD -= amountInUSD;
-  overallStats.currencies[currencyCode].plays++;
-  overallStats.currencies[currencyCode].lossesUSD += amountInUSD;
   overallStats.lossesUSD += amountInUSD;
   overallStats.netUSD -= amountInUSD;
 
@@ -466,7 +459,7 @@ function processBuyIn(stats, providerStats, providerAndStudio, overallStats, dai
   dailyNetUSD[date].betSize += amountInUSD;
 }
 
-function processPayOut(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, currencyCode, amountInUSD, date, game) {
+function processPayOut(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, amountInUSD, date, game) {
   stats[gameName].winsUSD += amountInUSD;
   stats[gameName].netUSD += amountInUSD;
   stats[gameName].payouts++;
@@ -474,10 +467,6 @@ function processPayOut(stats, providerStats, providerAndStudio, overallStats, da
   providerStats[providerAndStudio].winsUSD += amountInUSD;
   providerStats[providerAndStudio].netUSD += amountInUSD;
   providerStats[providerAndStudio].payouts++;
-
-  overallStats.currencies[currencyCode].winsUSD += amountInUSD;
-  overallStats.currencies[currencyCode].netUSD += amountInUSD;
-  overallStats.currencies[currencyCode].payouts++;
 
   overallStats.winsUSD += amountInUSD;
   overallStats.netUSD += amountInUSD;
@@ -517,21 +506,6 @@ function prepareReport(stats, providerStats, overallStats, dailyNetUSD, gameInfo
         rtpPercent: stats[gameName].lossesUSD !== 0 ? ((stats[gameName].winsUSD / stats[gameName].lossesUSD) * 100) : 0,
       });
     }
-  }
-
-  console.log('\nCalculating overall stats by currency');
-
-  for (const currencyCode in overallStats.currencies) {
-    const { winsUSD, lossesUSD, netUSD, plays } = overallStats.currencies[currencyCode];;
-
-    reportOverallStatsByCurrency.push({
-      currencyCode,
-      plays,
-      totalWagered: lossesUSD,
-      averageBet: lossesUSD / plays,
-      netUSD,
-      rtp: ((winsUSD / lossesUSD) * 100).toFixed(2)
-    });
   }
 
   console.log('\nCalculating overall stats by provider');
@@ -713,7 +687,6 @@ async function main() {
 
     try {
       ejs.renderFile('results_template.ejs', {
-        reportOverallStatsByCurrency: reportOverallStatsByCurrency,
         reportOverallStatsByGameType: reportOverallStatsByGameType,
         reportMonthlyStats: reportMonthlyStats,
         reportDailyStats: reportDailyStats,
