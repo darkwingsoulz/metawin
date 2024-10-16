@@ -24,14 +24,44 @@
 
         .nav-bar {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
             background-color: #1e1e1e;
-            padding: 10px 0;
+            padding: 10px 20px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
             position: sticky;
             top: 0;
             z-index: 1000;
+        }
+
+        .hamburger-menu {
+            display: none;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 30px;
+            cursor: pointer;
+        }
+
+        .nav-links {
+            display: flex;
+        }
+
+        .nav-links a {
+            color: #fff;
+            text-decoration: none;
+            margin: 0 15px;
+            font-size: 16px;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: #ff4081;
+        }
+
+        .nav-links a.active {
+            color: #ff4081;
+            font-weight: bold;
         }
 
         .nav-bar a {
@@ -58,6 +88,33 @@
             margin-right: 30px;
             letter-spacing: 1px;
             text-transform: uppercase;
+        }
+
+        @media (max-width: 768px) {
+            .hamburger-menu {
+                display: block;
+            }
+
+            .nav-links {
+                display: none;
+                flex-direction: column;
+                background-color: #1e1e1e;
+                position: absolute;
+                top: 60px;
+                left: 0;
+                width: 100%;
+                padding: 20px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            }
+
+            .nav-links a {
+                margin: 10px 0;
+                text-align: left;
+            }
+
+            .nav-links.show {
+                display: flex;
+            }
         }
 
         .info-blurb {
@@ -387,12 +444,15 @@
     <!-- Sticky Navigation Bar -->
     <div class="nav-bar">
         <span class="metawin-label">MetaWin</span>
-        <a href="#summary">Summary</a>
-        <a href="#provider-stats">Provider Stats</a>
-        <a href="#game-type-stats">Game Type Stats</a>
-        <a href="#monthly-stats">Monthly Stats</a>
-        <a href="#daily-stats">Daily Stats</a>
-        <a href="#games-section">Game Stats</a>
+        <button class="hamburger-menu" onclick="toggleMenu()">☰</button>
+        <div class="nav-links">
+            <a href="#summary">Summary</a>
+            <a href="#provider-stats">Provider Stats</a>
+            <a href="#game-type-stats">Game Type Stats</a>
+            <a href="#monthly-stats">Monthly Stats</a>
+            <a href="#daily-stats">Daily Stats</a>
+            <a href="#games-section">Game Stats</a>
+        </div>
     </div>
 
     <div class="container" id="top">
@@ -878,6 +938,10 @@
                 sortGames('netUSD', 'desc');
             });
 
+            function toggleMenu() {
+                const navLinks = document.querySelector('.nav-links');
+                navLinks.classList.toggle('show');
+            }
 
         </script>
     </div>
