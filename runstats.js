@@ -16,10 +16,13 @@ const METAWIN_ENDPOINTS = {
   HISTORY: 'https://api.prod.platform.metawin.com/game/action',
   NOTIFICATIONS: 'https://api.prod.platform.metawin.com/notification',
   CLAIMS: 'https://api.prod.platform.metawin.com/inventory',
-  REWARDS: 'https://api.prod.platform.metawin.com/reward'/*,
+  REWARDS: 'https://api.prod.platform.metawin.com/reward',
   HILO: 'https://api.prod.platform.mwapp.io/game/history/hilo',
-  CRASH: 'https://api.prod.platform.mwapp.io/game/history/crash'*/
+  REKT: 'https://api.prod.platform.mwapp.io/game/history/crash'
 };
+
+const REKT_IMAGE_URL = "https://content.prod.platform.mwapp.io/games/NEWREKT.png";
+const HILO_IMAGE_URL = "https://content.prod.platform.mwapp.io/games/NEWHILO.png";
 
 const headers = {
   'Origin': 'https://metawin.com',
@@ -102,6 +105,8 @@ function upgradeLatestFileFormat() {
       NOTIFICATIONS: 0,
       CLAIMS: 0,
       REWARDS: 0,
+      HILO: 0,
+      REKT: 0
     };
     // Save the new JSON format
     fs.writeFileSync(latestIdFile, JSON.stringify(initialData, null, 2));
@@ -110,62 +115,113 @@ function upgradeLatestFileFormat() {
   }
 }
 
-async function updateLocalFiles() {
-  console.log("Updating local files...");
+async function updateLocalFiles(urlType) {
 
-  for (const urlType in METAWIN_ENDPOINTS) {
-    const apiUrl = METAWIN_ENDPOINTS[urlType];
-    const newestId = getNewestId(urlType);
+  const apiUrl = METAWIN_ENDPOINTS[urlType];
+  const newestId = getNewestId(urlType);
 
-    try {
-      console.log(`Retrieving data for ${urlType}...`);
+  try {
+    console.log(`Retrieving data for ${urlType}...`);
 
-      const firstPageData = await fetchData(apiUrl, 1);
-      if (!firstPageData) {
-        console.log(`Error fetching new data for ${urlType}.`);
-        continue;
-      }
+    const firstPageData = await fetchData(apiUrl, 1);
+    if (!firstPageData) {
+      console.log(`Error fetching new data for ${urlType}.`);
+      return;
+    }
 
-      const newItems = firstPageData.items.filter(item => item.id > newestId);
+    const newItems = firstPageData.items.filter(item => item.id > newestId);
 
-      if (newItems.length > 0) {
-        firstPageData.items = newItems;
-        await saveData(urlType, firstPageData, 1);
-      } else {
-        console.log(`${urlType} already up to date.`);
-        continue;
-      }
+    if (newItems.length > 0) {
+      firstPageData.items = newItems;
+      await saveData(urlType, firstPageData, 1);
+    } else {
+      console.log(`${urlType} already up to date.`);
+      return;
+    }
 
-      console.log(`New data incoming for ${urlType}.`);
+    console.log(`New data incoming for ${urlType}.`);
 
-      const totalPages = firstPageData.pageCount;
-      let maxId = Math.max(...newItems.map(item => item.id));
-      saveNewestId(urlType, maxId);
+    const totalPages = firstPageData.pageCount;
 
-      for (let page = 2; page <= totalPages; page++) {
-        console.log(`Retrieving data for ${urlType} (${page} of ${totalPages})`);
+    let maxId = Math.max(...newItems.map(item => item.id));
+    saveNewestId(urlType, maxId);
 
-        const pageData = await fetchData(METAWIN_ENDPOINTS.HISTORY, page);
+    for (let page = 2; page <= totalPages; page++) {
+      console.log(`Retrieving data for ${urlType} (${page} of ${totalPages})`);
 
-        if (pageData) {
-          if (newestId && pageData.items.some(item => item.id <= newestId)) {
-            const newItems = pageData.items.filter(item => item.id > newestId);
-            pageData.items = newItems;
-            await saveData(urlType, pageData, page);
-            console.log("No additional pages needed and can be skipped!");
-            break;
-          } else {
-            await saveData(urlType, pageData, page);
-          }
+      const pageData = await fetchData(METAWIN_ENDPOINTS[urlType], page);
+
+      if (pageData) {
+        if (newestId && pageData.items.some(item => item.id <= newestId)) {
+          const newItems = pageData.items.filter(item => item.id > newestId);
+          pageData.items = newItems;
+          await saveData(urlType, pageData, page);
+          console.log("No additional pages needed and can be skipped!");
+          break;
+        } else {
+          await saveData(urlType, pageData, page);
         }
       }
-
-    } catch (error) {
-      console.log(`Cannot retrieve new data for ${urlType}, need token`);
     }
-  }
 
-  console.log("Updating local files complete");
+  } catch (error) {
+    console.log(`Cannot retrieve new data for ${urlType}, need token`);
+  }
+}
+
+async function updateLocalFilesForMiniGames(urlType) {
+
+  const apiUrl = METAWIN_ENDPOINTS[urlType];
+  const newestId = getNewestId(urlType);
+
+  try {
+    console.log(`Retrieving data for ${urlType}...`);
+
+    const firstPageData = await fetchData(apiUrl, 1);
+    if (!firstPageData) {
+      console.log(`Error fetching new data for ${urlType}.`);
+      return;
+    }
+
+    const newItems = firstPageData.items.filter(item => item.createTime > newestId);
+
+    if (newItems.length > 0) {
+      console.log(newItems);
+      firstPageData.items = newItems;
+      await saveData(urlType, firstPageData, 1);
+    } else {
+      console.log(`${urlType} already up to date.`);
+      return;
+    }
+
+    console.log(`New data incoming for ${urlType}.`);
+
+    const totalPages = firstPageData.pageCount;
+
+    let maxId = Math.max(...newItems.map(item => item.createTime));
+    saveNewestId(urlType, maxId);
+
+    for (let page = 2; page <= totalPages; page++) {
+      console.log(`Retrieving data for ${urlType} (${page} of ${totalPages})`);
+
+      const pageData = await fetchData(METAWIN_ENDPOINTS[urlType], page);
+
+      if (pageData) {
+        if (newestId && pageData.items.some(item => item.createTime <= newestId)) {
+          const newItems = pageData.items.filter(item => item.createTime > newestId);
+          pageData.items = newItems;
+          await saveData(urlType, pageData, page);
+          console.log("No additional pages needed and can be skipped!");
+          break;
+        } else {
+          await saveData(urlType, pageData, page);
+        }
+      }
+    }
+
+  } catch (error) {
+    console.log(`Cannot retrieve new data for ${urlType}, need token`);
+  }
 }
 
 function readAllDataFromLocalFiles() {
@@ -241,6 +297,90 @@ function processData(allData) {
     batchData.forEach(data => {
       data.items.forEach(item => {
 
+        //check for HILO/REKT
+        if (item.event) {
+          if (item.event !== 'player-round-result') return;
+
+          let miniGameName = "";
+          let miniGameThumbnail = "";
+          let betAmount = "";
+          let prizeAmount = "";
+          const metawinstudios = "Metawinstudios";
+
+          //HILO
+          if (typeof item.data.lifeNumber !== 'undefined') {
+            miniGameName = "HILO";
+            miniGameThumbnail = HILO_IMAGE_URL;
+
+            //must be USD
+            if (!item.data.sourceCurrency || item.data.sourceCurrency !== "USD") return;
+
+            betAmount = item.data.betAmount;
+            prizeAmount = item.data.prizeAmount;
+
+          } else {
+            miniGameName = "REKT";
+            miniGameThumbnail = REKT_IMAGE_URL;
+
+            betAmount = item.data.playerLastRound.betAmount;
+            prizeAmount = item.data.playerLastRound.payout;
+            if (!prizeAmount) prizeAmount = 0;
+          }
+
+          const date = getTimeDate(item.createTime);
+
+          if (!gameInfo[miniGameName]) gameInfo[miniGameName] = { thumbnail: miniGameThumbnail };
+          if (!stats[miniGameName]) stats[miniGameName] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0, bestMulti: 0, bestWinUSD: 0 };
+          if (!overallStats.gameType[miniGameName]) overallStats.gameType[miniGameName] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0 };
+          if (!dailyNetUSD[date]) dailyNetUSD[date] = { netUSD: 0, plays: 0, betSize: 0 };
+          if (!providerStats[metawinstudios]) providerStats[metawinstudios] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0 };
+
+          let roundMultiplier = (prizeAmount / betAmount);
+
+          if (stats[miniGameName].bestMulti < roundMultiplier)
+            stats[miniGameName].bestMulti = roundMultiplier;
+
+          if (stats[miniGameName].bestWinUSD < prizeAmount)
+            stats[miniGameName].bestWinUSD = prizeAmount;
+
+          const dateCreateTime = new Date(item.createTime);
+          if (dateCreateTime >= sevenDaysAgo && dateCreateTime <= now)
+            overallStats.lossesUSD7Days += betAmount;
+
+          let prizeDiff = prizeAmount - betAmount;
+          let isProfit = prizeAmount - betAmount > 0;
+
+          stats[miniGameName].netUSD += prizeDiff;
+          stats[miniGameName].plays++;
+          stats[miniGameName].lossesUSD += betAmount;
+
+          if (isProfit) stats[miniGameName].winsUSD += prizeDiff;
+          if (isProfit) stats[miniGameName].payouts++;
+
+          overallStats.netUSD += prizeDiff;
+          overallStats.lossesUSD += betAmount;
+          overallStats.netUSD += prizeDiff;
+          overallStats.gameType[miniGameName].lossesUSD += betAmount;
+          overallStats.gameType[miniGameName].netUSD += prizeDiff;
+          overallStats.gameType[miniGameName].plays++;
+
+          if (isProfit) overallStats.gameType[miniGameName].winsUSD += prizeDiff;
+          if (isProfit) overallStats.gameType[miniGameName].payouts++;
+          if (isProfit) overallStats.winsUSD += prizeDiff;
+
+          providerStats[metawinstudios].netUSD -= prizeDiff;
+          providerStats[metawinstudios].plays++;
+          providerStats[metawinstudios].lossesUSD += betAmount;
+          if (isProfit) providerStats[metawinstudios].winsUSD += prizeDiff;
+          if (isProfit) providerStats[metawinstudios].payouts++;
+
+          dailyNetUSD[date].netUSD += prizeDiff;
+          dailyNetUSD[date].plays++;
+          dailyNetUSD[date].betSize += betAmount;
+
+          return;
+        }
+
         //TODO: maybe handle competition entries at some point
         if (item.type === 'SweepstakeEntry') return;
 
@@ -257,6 +397,8 @@ function processData(allData) {
             gameName = "Baccarat";
           } else if (gameName.startsWith("Blackjack") && game.type === "LiveCasino") {
             gameName = "Blackjack";
+          } else if (gameName.startsWith("Roulette") && game.type === "LiveCasino") {
+            gameName = "Roulette";
           }
 
           const amountInUSD = parseFloat(providerCurrency.amount);
@@ -271,9 +413,7 @@ function processData(allData) {
           let providerAndStudio = formatProviderAndStudio(game.provider, game.studio);
 
           //provider stats
-          if (!providerStats[providerAndStudio]) {
-            providerStats[providerAndStudio] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0 };
-          }
+          if (!providerStats[providerAndStudio]) providerStats[providerAndStudio] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0 };
 
           //game stats
           if (!stats[gameName]) stats[gameName] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0, bestMulti: 0, bestWinUSD: 0 };
@@ -671,7 +811,14 @@ async function main() {
   }
 
   try {
-    await updateLocalFiles();
+    console.log("Updating local files...");
+    for (const urlType in METAWIN_ENDPOINTS) {
+      if (urlType === 'HILO' || urlType === 'REKT')
+        await updateLocalFilesForMiniGames(urlType);
+      else
+        await updateLocalFiles(urlType);
+    }
+    console.log("Updating local files complete");
   }
   catch {
     console.log("Cannot retrieve new data, need token");
