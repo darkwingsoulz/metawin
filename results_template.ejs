@@ -454,12 +454,12 @@
         <button class="hamburger-menu" onclick="toggleMenu()">☰</button>
         <div class="nav-links">
             <a href="#summary">Summary</a>
-            <a href="#provider-stats">Provider Stats</a>
-            <a href="#game-type-stats">Game Type Stats</a>
-            <a href="#monthly-stats">Monthly Stats</a>
-            <a href="#daily-stats">Daily Stats</a>
-            <a href="#session-stats">Session Stats</a>
-            <a href="#games-section">Game Stats</a>
+            <a href="#monthly-stats">Monthly</a>
+            <a href="#daily-stats">Daily</a>
+            <a href="#session-stats">Sessions</a>
+            <a href="#provider-stats">Providers</a>
+            <a href="#game-type-stats">Game Type</a>
+            <a href="#games-section">Games</a>
         </div>
     </div>
 
@@ -543,91 +543,6 @@
                 Keep in mind, <strong>playable ETH</strong> is still counted as a reward, as any wagers made with it are
                 reflected in your net totals.
             </p>
-        </div>
-
-        <!-- Overall Stats By Provider Section -->
-        <div class="section" id="provider-stats">
-            <h2>Overall Stats By Provider</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Provider</th>
-                        <th>Plays</th>
-                        <th>Total Wagered</th>
-                        <th>Average Bet</th>
-                        <th>RTP %</th>
-                        <th>Net USD</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% reportProviderStats.forEach(stat=> { %>
-                        <tr>
-                            <td>
-                                <%= stat.provider %>
-                            </td>
-                            <td>
-                                <%= formatNumber(stat.plays) %>
-                            </td>
-                            <td>
-                                <%= formatCurrency(stat.totalWagered) %>
-                            </td>
-                            <td>
-                                <%= formatCurrency(stat.averageBet) %>
-                            </td>
-                            <td>
-                                <%= formatPercentage(stat.rtp) %>
-                            </td>
-                            <td>
-                                <span class="<%= stat.netUSD >= 0 ? 'profit' : 'loss' %>">
-                                    <%= formatCurrency(stat.netUSD) %>
-                                </span>
-                            </td>
-                        </tr>
-                        <% }); %>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="section" id="game-type-stats">
-            <h2>Overall Stats By Game Type</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Game Type</th>
-                        <th>Plays</th>
-                        <th>Total Wagered</th>
-                        <th>Average Bet</th>
-                        <th>RTP %</th>
-                        <th>Net USD</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% reportOverallStatsByGameType.forEach(stat=> { %>
-                        <tr>
-                            <td>
-                                <%= stat.gameType %>
-                            </td>
-                            <td>
-                                <%= formatNumber(stat.plays) %>
-                            </td>
-                            <td>
-                                <%= formatCurrency(stat.totalWagered) %>
-                            </td>
-                            <td>
-                                <%= formatCurrency(stat.averageBet) %>
-                            </td>
-                            <td>
-                                <%= formatPercentage(stat.rtp) %>
-                            </td>
-                            <td>
-                                <span class="<%= stat.netUSD >= 0 ? 'profit' : 'loss' %>">
-                                    <%= formatCurrency(stat.netUSD) %>
-                                </span>
-                            </td>
-                        </tr>
-                        <% }); %>
-                </tbody>
-            </table>
         </div>
 
         <div class="section" id="monthly-stats">
@@ -769,6 +684,91 @@
                             </td>
                             <td>
                                 <%= stat.timePlayed %>
+                            </td>
+                        </tr>
+                        <% }); %>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Overall Stats By Provider Section -->
+        <div class="section" id="provider-stats">
+            <h2>Overall Stats By Provider</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Provider</th>
+                        <th>Plays</th>
+                        <th>Total Wagered</th>
+                        <th>Average Bet</th>
+                        <th>RTP %</th>
+                        <th>Net USD</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% reportProviderStats.forEach(stat=> { %>
+                        <tr>
+                            <td>
+                                <%= stat.provider %>
+                            </td>
+                            <td>
+                                <%= formatNumber(stat.plays) %>
+                            </td>
+                            <td>
+                                <%= formatCurrency(stat.totalWagered) %>
+                            </td>
+                            <td>
+                                <%= formatCurrency(stat.averageBet) %>
+                            </td>
+                            <td>
+                                <%= formatPercentage(stat.rtp) %>
+                            </td>
+                            <td>
+                                <span class="<%= stat.netUSD >= 0 ? 'profit' : 'loss' %>">
+                                    <%= formatCurrency(stat.netUSD) %>
+                                </span>
+                            </td>
+                        </tr>
+                        <% }); %>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section" id="game-type-stats">
+            <h2>Overall Stats By Game Type</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Game Type</th>
+                        <th>Plays</th>
+                        <th>Total Wagered</th>
+                        <th>Average Bet</th>
+                        <th>RTP %</th>
+                        <th>Net USD</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% reportOverallStatsByGameType.forEach(stat=> { %>
+                        <tr>
+                            <td>
+                                <%= stat.gameType %>
+                            </td>
+                            <td>
+                                <%= formatNumber(stat.plays) %>
+                            </td>
+                            <td>
+                                <%= formatCurrency(stat.totalWagered) %>
+                            </td>
+                            <td>
+                                <%= formatCurrency(stat.averageBet) %>
+                            </td>
+                            <td>
+                                <%= formatPercentage(stat.rtp) %>
+                            </td>
+                            <td>
+                                <span class="<%= stat.netUSD >= 0 ? 'profit' : 'loss' %>">
+                                    <%= formatCurrency(stat.netUSD) %>
+                                </span>
                             </td>
                         </tr>
                         <% }); %>
