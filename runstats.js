@@ -551,7 +551,7 @@ function processData(allData) {
           let monthKey = getMonthKey(item.createTime);
           if (!rewardsByMonth[monthKey]) rewardsByMonth[monthKey] = 0;
           rewardsByMonth[monthKey] += amount;
-          overallStats.rewards += amount;
+
         } else if (item.type === 'TipReceived') {
           /*
           the "TipsReceived" data structure does not include currency code
@@ -582,7 +582,7 @@ function processData(allData) {
           let monthKey = getMonthKey(item.createTime);
           if (!rewardsByMonth[monthKey]) rewardsByMonth[monthKey] = 0;
           rewardsByMonth[monthKey] += amount;
-          overallStats.rewards += amount;
+
         }
         else if (item.type === 'Cash') {
           //only include claimed amounts
@@ -603,7 +603,7 @@ function processData(allData) {
           let monthKey = getMonthKey(item.createTime);
           if (!rewardsByMonth[monthKey]) rewardsByMonth[monthKey] = 0;
           rewardsByMonth[monthKey] += amount;
-          overallStats.rewards += amount;
+
         } else if (item.type === 'Funds' || item.type === 'InventoryFunds') {
           //Must be Playable/Completed
           //these are winbacks/boost codes (based on item.sourceType)
@@ -628,7 +628,6 @@ function processData(allData) {
 
           if (!rewardsByMonth[monthKey]) rewardsByMonth[monthKey] = 0;
           rewardsByMonth[monthKey] += amount;
-          overallStats.rewards += amount;
         }
         else if (item.type === 'TradingOrderClosed') {
           //TODO HODL game, future support 
@@ -728,7 +727,7 @@ function prepareReport(stats, providerStats, overallStats, dailyNetUSD, sessionN
 
     reportSessionStats.push({
       sessionId,
-      date: getTimeDate(sessionNetUSD[sessionId].date),
+      date: currentSessionDate,
       plays: sessionNetUSD[sessionId].plays,
       averageBet,
       totalWagered: totalBets,
@@ -801,6 +800,8 @@ function prepareReport(stats, providerStats, overallStats, dailyNetUSD, sessionN
         netUSD,
         rtp: monthlyRTP,
       });
+
+      overallStats.rewards += totalRewards;
     });
 }
 
