@@ -738,14 +738,17 @@ function prepareReport(stats, providerStats, overallStats, dailyNetUSD, sessionN
   const allSessions = Object.keys(sessionNetUSD)
     .sort((a, b) => new Date(sessionNetUSD[b].date) - new Date(sessionNetUSD[a].date));
 
+
   allSessions.forEach(sessionId => {
+
     let averageBet = sessionNetUSD[sessionId].betSize / sessionNetUSD[sessionId].plays;
     let totalBets = averageBet * sessionNetUSD[sessionId].plays;
     const sessionRTP = averageBet > 0 ? ((sessionNetUSD[sessionId].netUSD + totalBets) / totalBets) * 100 : 0;
 
-    let totalSessionMinutes = Math.ceil(sessionNetUSD[sessionId].sessionLength / 60000); // round up to nearest minute
+    let totalSessionMinutes = Math.ceil(sessionNetUSD[sessionId].sessionLength / 60000);
     const sessionHours = Math.floor(totalSessionMinutes / 60);
     const sessionMinutes = totalSessionMinutes % 60;
+    const currentSessionDate = getTimeDate(sessionNetUSD[sessionId].date);
 
     reportSessionStats.push({
       sessionId,
