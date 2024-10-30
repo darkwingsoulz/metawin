@@ -335,29 +335,6 @@ function processData(allData) {
           if (!overallStats.gameType[miniGameName]) overallStats.gameType[miniGameName] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0 };
           if (!dailyNetUSD[date]) dailyNetUSD[date] = { netUSD: 0, plays: 0, betSize: 0 };
 
-          if (!sessionNetUSD[item.sessionId]) sessionNetUSD[item.sessionId] = {
-            netUSD: 0, plays: 0, betSize: 0,
-            date: date,
-            dateMin: item.createTime,
-            dateMax: item.createTime,
-            sessionLength: 0
-          }
-          else {
-            sessionNetUSD[item.sessionId].dateMin = new Date(Math.min(
-              new Date(sessionNetUSD[item.sessionId].dateMin),
-              new Date(item.createTime)
-            )).toISOString();
-
-            sessionNetUSD[item.sessionId].dateMax = new Date(Math.max(
-              new Date(sessionNetUSD[item.sessionId].dateMax),
-              new Date(item.createTime)
-            )).toISOString();
-
-            sessionNetUSD[item.sessionId].sessionLength =
-              new Date(sessionNetUSD[item.sessionId].dateMax) -
-              new Date(sessionNetUSD[item.sessionId].dateMin);
-          }
-
           if (!providerStats[metawinstudios]) providerStats[metawinstudios] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0 };
 
           let roundMultiplier = (prizeAmount / betAmount);
@@ -402,10 +379,6 @@ function processData(allData) {
           dailyNetUSD[date].netUSD += prizeDiff;
           dailyNetUSD[date].plays++;
           dailyNetUSD[date].betSize += betAmount;
-
-          sessionNetUSD[item.sessionId].netUSD += prizeDiff;
-          sessionNetUSD[item.sessionId].plays++;
-          sessionNetUSD[item.sessionId].betSize += betAmount;
 
           return;
         }
@@ -656,6 +629,9 @@ function processData(allData) {
           if (!rewardsByMonth[monthKey]) rewardsByMonth[monthKey] = 0;
           rewardsByMonth[monthKey] += amount;
           overallStats.rewards += amount;
+        }
+        else if (item.type === 'TradingOrderClosed') {
+          //TODO HODL game, future support 
         }
         else {
           console.log(`Unknown type ${item.type}`);
