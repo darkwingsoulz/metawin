@@ -712,7 +712,7 @@ function prepareReport(stats, providerStats, overallStats, dailyNetUSD, sessionN
 
   //Session Grouping
   const allSessions = Object.keys(sessionNetUSD)
-    .sort((a, b) => new Date(sessionNetUSD[b].date) - new Date(sessionNetUSD[a].date));
+    .sort((a, b) => b - a);
 
 
   allSessions.forEach(sessionId => {
