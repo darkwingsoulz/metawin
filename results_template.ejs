@@ -152,10 +152,6 @@
             transition: transform 0.3s ease-in-out;
         }
 
-        .section:hover {
-            transform: scale(1.02);
-        }
-
         .section h2 {
             margin-top: 0;
             font-size: 24px;
@@ -462,6 +458,7 @@
             <a href="#game-type-stats">Game Type Stats</a>
             <a href="#monthly-stats">Monthly Stats</a>
             <a href="#daily-stats">Daily Stats</a>
+            <a href="#session-stats">Session Stats</a>
             <a href="#games-section">Game Stats</a>
         </div>
     </div>
@@ -722,6 +719,56 @@
                                 <span class="<%= stat.netUSD >= 0 ? 'profit' : 'loss' %>">
                                     <%= formatCurrency(stat.netUSD) %>
                                 </span>
+                            </td>
+                        </tr>
+                        <% }); %>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section" id="session-stats">
+            <h2>Session Stats</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Session ID</th>
+                        <th>Date</th>
+                        <th>Plays</th>
+                        <th>Average Bet</th>
+                        <th>Total Wagered</th>
+                        <th>RTP %</th>
+                        <th>NET USD</th>
+                        <th>Time Played</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% reportSessionStats.forEach(stat=> { %>
+                        <tr>
+                            <td>
+                                <%= stat.sessionId %>
+                            </td>
+                            <td>
+                                <%= stat.date %>
+                            </td>
+                            <td>
+                                <%= formatNumber(stat.plays) %>
+                            </td>
+                            <td>
+                                <%= formatCurrency(stat.averageBet) %>
+                            </td>
+                            <td>
+                                <%= formatCurrency(stat.totalWagered) %>
+                            </td>
+                            <td>
+                                <%= formatPercentage(stat.rtp) %>
+                            </td>
+                            <td>
+                                <span class="<%= stat.netUSD >= 0 ? 'profit' : 'loss' %>">
+                                    <%= formatCurrency(stat.netUSD) %>
+                                </span>
+                            </td>
+                            <td>
+                                <%= stat.timePlayed %>
                             </td>
                         </tr>
                         <% }); %>

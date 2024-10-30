@@ -30,7 +30,6 @@ const headers = {
 };
 
 const ethRates = {};
-
 const now = new Date();
 const sevenDaysAgo = new Date(now);
 sevenDaysAgo.setDate(now.getDate() - 7);
@@ -44,6 +43,7 @@ const getMonthKey = (date) => {
 let rewardsByMonth = [];
 let reportOverallStatsByGameType = [];
 let reportDailyStats = [];
+let reportSessionStats = [];
 let reportProviderStats = [];
 let reportMonthlyStats = [];
 let reportGameData = [];
@@ -282,6 +282,7 @@ function processData(allData) {
   const providerStats = {};
   const overallStats = { winsUSD: 0, lossesUSD: 0, lossesUSD7Days: 0, netUSD: 0, rewards: 0, currencies: {}, gameType: {} };
   const dailyNetUSD = {};
+  const sessionNetUSD = {};
   const gameInfo = {};
   const totalBatches = Math.ceil(allData.length / BATCH_SIZE);
   const roundTracker = {};
@@ -333,6 +334,30 @@ function processData(allData) {
           if (!stats[miniGameName]) stats[miniGameName] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0, bestMulti: 0, bestWinUSD: 0 };
           if (!overallStats.gameType[miniGameName]) overallStats.gameType[miniGameName] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0 };
           if (!dailyNetUSD[date]) dailyNetUSD[date] = { netUSD: 0, plays: 0, betSize: 0 };
+
+          if (!sessionNetUSD[item.sessionId]) sessionNetUSD[item.sessionId] = {
+            netUSD: 0, plays: 0, betSize: 0,
+            date: date,
+            dateMin: item.createTime,
+            dateMax: item.createTime,
+            sessionLength: 0
+          }
+          else {
+            sessionNetUSD[item.sessionId].dateMin = new Date(Math.min(
+              new Date(sessionNetUSD[item.sessionId].dateMin),
+              new Date(item.createTime)
+            )).toISOString();
+
+            sessionNetUSD[item.sessionId].dateMax = new Date(Math.max(
+              new Date(sessionNetUSD[item.sessionId].dateMax),
+              new Date(item.createTime)
+            )).toISOString();
+
+            sessionNetUSD[item.sessionId].sessionLength =
+              new Date(sessionNetUSD[item.sessionId].dateMax) -
+              new Date(sessionNetUSD[item.sessionId].dateMin);
+          }
+
           if (!providerStats[metawinstudios]) providerStats[metawinstudios] = { plays: 0, payouts: 0, winsUSD: 0, lossesUSD: 0, netUSD: 0 };
 
           let roundMultiplier = (prizeAmount / betAmount);
@@ -378,10 +403,14 @@ function processData(allData) {
           dailyNetUSD[date].plays++;
           dailyNetUSD[date].betSize += betAmount;
 
+          sessionNetUSD[item.sessionId].netUSD += prizeDiff;
+          sessionNetUSD[item.sessionId].plays++;
+          sessionNetUSD[item.sessionId].betSize += betAmount;
+
           return;
         }
 
-        //TODO: maybe handle competition entries at some point
+        //ignore competition entries
         if (item.type === 'SweepstakeEntry') return;
 
         if (item.type === 'BuyIn' || item.type === 'PayOut') {
@@ -428,6 +457,29 @@ function processData(allData) {
             dailyNetUSD[date] = { netUSD: 0, plays: 0, betSize: 0 };
           }
 
+          if (!sessionNetUSD[item.sessionId]) sessionNetUSD[item.sessionId] = {
+            netUSD: 0, plays: 0, betSize: 0,
+            date: date,
+            dateMin: item.createTime,
+            dateMax: item.createTime,
+            sessionLength: 0
+          }
+          else {
+            sessionNetUSD[item.sessionId].dateMin = new Date(Math.min(
+              new Date(sessionNetUSD[item.sessionId].dateMin),
+              new Date(item.createTime)
+            )).toISOString();
+
+            sessionNetUSD[item.sessionId].dateMax = new Date(Math.max(
+              new Date(sessionNetUSD[item.sessionId].dateMax),
+              new Date(item.createTime)
+            )).toISOString();
+
+            sessionNetUSD[item.sessionId].sessionLength =
+              new Date(sessionNetUSD[item.sessionId].dateMax) -
+              new Date(sessionNetUSD[item.sessionId].dateMin);
+          }
+
           if (!roundTracker[item.roundId])
             roundTracker[item.roundId] = { buy: 0, payout: 0 };
 
@@ -438,6 +490,7 @@ function processData(allData) {
             roundTracker[item.roundId].payout = amountInUSD;
           }
 
+          //Process game round
           if (roundTracker[item.roundId].buy && roundTracker[item.roundId].payout) {
 
             let buyAmount = roundTracker[item.roundId].buy;
@@ -459,9 +512,49 @@ function processData(allData) {
             if (dateCreateTime >= sevenDaysAgo && dateCreateTime <= now) {
               overallStats.lossesUSD7Days += amountInUSD;
             }
-            processBuyIn(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, amountInUSD, date, game);
+
+            stats[gameName].netUSD -= amountInUSD;
+            stats[gameName].plays++;
+            stats[gameName].lossesUSD += amountInUSD;
+
+            providerStats[providerAndStudio].netUSD -= amountInUSD;
+            providerStats[providerAndStudio].plays++;
+            providerStats[providerAndStudio].lossesUSD += amountInUSD;
+
+            overallStats.lossesUSD += amountInUSD;
+            overallStats.netUSD -= amountInUSD;
+
+            overallStats.gameType[game.type].lossesUSD += amountInUSD;
+            overallStats.gameType[game.type].netUSD -= amountInUSD;
+            overallStats.gameType[game.type].plays++;
+
+            dailyNetUSD[date].netUSD -= amountInUSD;
+            dailyNetUSD[date].plays++;
+            dailyNetUSD[date].betSize += amountInUSD;
+
+            sessionNetUSD[item.sessionId].netUSD -= amountInUSD;
+            sessionNetUSD[item.sessionId].plays++;
+            sessionNetUSD[item.sessionId].betSize += amountInUSD;
+
           } else if (item.type === 'PayOut') {
-            processPayOut(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, amountInUSD, date, game);
+            stats[gameName].winsUSD += amountInUSD;
+            stats[gameName].netUSD += amountInUSD;
+            stats[gameName].payouts++;
+
+            providerStats[providerAndStudio].winsUSD += amountInUSD;
+            providerStats[providerAndStudio].netUSD += amountInUSD;
+            providerStats[providerAndStudio].payouts++;
+
+            overallStats.winsUSD += amountInUSD;
+            overallStats.netUSD += amountInUSD;
+
+            overallStats.gameType[game.type].winsUSD += amountInUSD;
+            overallStats.gameType[game.type].netUSD += amountInUSD;
+            overallStats.gameType[game.type].payouts++;
+
+            dailyNetUSD[date].netUSD += amountInUSD;
+
+            sessionNetUSD[item.sessionId].netUSD += amountInUSD;
           }
           else if (item.type === 'Rollback') {
             //refund player
@@ -575,47 +668,7 @@ function processData(allData) {
 
   console.log("Data processing completed.");
 
-  return { stats, providerStats, overallStats, dailyNetUSD, gameInfo };
-}
-
-function processBuyIn(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, amountInUSD, date, game) {
-  stats[gameName].netUSD -= amountInUSD;
-  stats[gameName].plays++;
-  stats[gameName].lossesUSD += amountInUSD;
-
-  providerStats[providerAndStudio].netUSD -= amountInUSD;
-  providerStats[providerAndStudio].plays++;
-  providerStats[providerAndStudio].lossesUSD += amountInUSD;
-
-  overallStats.lossesUSD += amountInUSD;
-  overallStats.netUSD -= amountInUSD;
-
-  overallStats.gameType[game.type].lossesUSD += amountInUSD;
-  overallStats.gameType[game.type].netUSD -= amountInUSD;
-  overallStats.gameType[game.type].plays++;
-
-  dailyNetUSD[date].netUSD -= amountInUSD;
-  dailyNetUSD[date].plays++;
-  dailyNetUSD[date].betSize += amountInUSD;
-}
-
-function processPayOut(stats, providerStats, providerAndStudio, overallStats, dailyNetUSD, gameName, amountInUSD, date, game) {
-  stats[gameName].winsUSD += amountInUSD;
-  stats[gameName].netUSD += amountInUSD;
-  stats[gameName].payouts++;
-
-  providerStats[providerAndStudio].winsUSD += amountInUSD;
-  providerStats[providerAndStudio].netUSD += amountInUSD;
-  providerStats[providerAndStudio].payouts++;
-
-  overallStats.winsUSD += amountInUSD;
-  overallStats.netUSD += amountInUSD;
-
-  overallStats.gameType[game.type].winsUSD += amountInUSD;
-  overallStats.gameType[game.type].netUSD += amountInUSD;
-  overallStats.gameType[game.type].payouts++;
-
-  dailyNetUSD[date].netUSD += amountInUSD;
+  return { stats, providerStats, overallStats, dailyNetUSD, sessionNetUSD, gameInfo };
 }
 
 const usdFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -628,7 +681,7 @@ function formatNumber(number) {
   return new Intl.NumberFormat('en-US').format(number);
 }
 
-function prepareReport(stats, providerStats, overallStats, dailyNetUSD, gameInfo) {
+function prepareReport(stats, providerStats, overallStats, dailyNetUSD, sessionNetUSD, gameInfo) {
   console.log('\nCalculating Game Statistics:');
 
   for (const gameName in stats) {
@@ -680,6 +733,31 @@ function prepareReport(stats, providerStats, overallStats, dailyNetUSD, gameInfo
       rtp: ((winsUSD / lossesUSD) * 100).toFixed(2)
     });
   }
+
+  //Session Grouping
+  const allSessions = Object.keys(sessionNetUSD)
+    .sort((a, b) => new Date(sessionNetUSD[b].date) - new Date(sessionNetUSD[a].date));
+
+  allSessions.forEach(sessionId => {
+    let averageBet = sessionNetUSD[sessionId].betSize / sessionNetUSD[sessionId].plays;
+    let totalBets = averageBet * sessionNetUSD[sessionId].plays;
+    const sessionRTP = averageBet > 0 ? ((sessionNetUSD[sessionId].netUSD + totalBets) / totalBets) * 100 : 0;
+
+    let totalSessionMinutes = Math.ceil(sessionNetUSD[sessionId].sessionLength / 60000); // round up to nearest minute
+    const sessionHours = Math.floor(totalSessionMinutes / 60);
+    const sessionMinutes = totalSessionMinutes % 60;
+
+    reportSessionStats.push({
+      sessionId,
+      date: getTimeDate(sessionNetUSD[sessionId].date),
+      plays: sessionNetUSD[sessionId].plays,
+      averageBet,
+      totalWagered: totalBets,
+      netUSD: sessionNetUSD[sessionId].netUSD,
+      rtp: sessionRTP,
+      timePlayed: `${sessionHours}h ${sessionMinutes}m`
+    });
+  });
 
   const allDates = Object.keys(dailyNetUSD)
     .sort((a, b) => new Date(b) - new Date(a));
@@ -828,15 +906,16 @@ async function main() {
   const localData = readAllDataFromLocalFiles();
   console.log("Reading Data files complete");
   if (localData.length > 0) {
-    const { stats, providerStats, overallStats, dailyNetUSD, gameInfo } = processData(localData);
+    const { stats, providerStats, overallStats, dailyNetUSD, sessionNetUSD, gameInfo } = processData(localData);
 
-    prepareReport(stats, providerStats, overallStats, dailyNetUSD, gameInfo);
+    prepareReport(stats, providerStats, overallStats, dailyNetUSD, sessionNetUSD, gameInfo);
 
     try {
       ejs.renderFile('results_template.ejs', {
         reportOverallStatsByGameType: reportOverallStatsByGameType,
         reportMonthlyStats: reportMonthlyStats,
         reportDailyStats: reportDailyStats,
+        reportSessionStats: reportSessionStats,
         reportGameData: reportGameData,
         reportProviderStats: reportProviderStats,
         overallStats: overallStats,
