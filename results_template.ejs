@@ -555,9 +555,9 @@
                         <th>Plays</th>
                         <th>Average Bet</th>
                         <th>Total Wagered</th>
-                        <th>Total Rewards</th>
                         <th>RTP %</th>
                         <th>NET USD</th>
+                        <th>Total Rewards</th>
                         <th>NET USD (inc. Rewards)</th>
                     </tr>
                 </thead>
@@ -577,15 +577,15 @@
                                 <%= formatCurrency(stat.totalWagered) %>
                             </td>
                             <td>
-                                <%= formatCurrency(stat.totalRewards) %>
-                            </td>
-                            <td>
                                 <%= formatPercentage(stat.rtp) %>
                             </td>
                             <td>
                                 <span class="<%= stat.netUSD >= 0 ? 'profit' : 'loss' %>">
                                     <%= formatCurrency(stat.netUSD) %>
                                 </span>
+                            </td>
+                            <td>
+                                <%= formatCurrency(stat.totalRewards) %>
                             </td>
                             <td>
                                 <span
