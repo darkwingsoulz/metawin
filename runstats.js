@@ -48,14 +48,22 @@ let reportProviderStats = [];
 let reportMonthlyStats = [];
 let reportGameData = [];
 
-async function fetchData(apiUrl, page) {
+async function fetchData(apiUrl, page, retries = 10, delayMs = 1000) {
   try {
     const response = await axios.get(`${apiUrl}?page=${page}&pageSize=${PAGE_SIZE}`, { headers });
     return response.data;
   } catch (error) {
-    return null;
+    if (retries > 0) {
+      console.warn(`Request failed, retrying in ${delayMs} ms... (${10 - retries + 1}/10)`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+      return fetchData(apiUrl, page, retries - 1, delayMs);
+    } else {
+      console.error('All retries failed.');
+      return null;
+    }
   }
 }
+
 
 function getNewestId(urlType) {
   const latestIdFile = path.join(__dirname, 'data', 'latest_id.json');
