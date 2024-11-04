@@ -806,10 +806,10 @@ function prepareReport(stats, providerStats, overallStats, dailyNetUSD, sessionN
 }
 
 function formatProviderAndStudio(providerName, studio) {
-  if (!studio || providerName.toLowerCase() === studio.toLowerCase()) {
+  if (!studio || providerName.toLowerCase() === studio.name.toLowerCase()) {
     return providerName;
   }
-  return studio.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+  return studio.name.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function findClosestRate(date) {
