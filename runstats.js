@@ -29,7 +29,28 @@ const headers = {
   'Authorization': 'Bearer ' + TOKEN_BEARER
 };
 
-const ethRates = {};
+const exchangeRatesToUSD = {
+  USD: 1,
+  EUR: 1.12,
+  ARS: 0.01,
+  BRL: 0.20,
+  CAD: 0.74,
+  CLP: 0.0013,
+  CNY: 0.14,
+  DKK: 0.15,
+  IDR: 0.000065,
+  INR: 0.012,
+  JPY: 0.0067,
+  KRW: 0.00074,
+  MXN: 0.056,
+  PHP: 0.018,
+  PLN: 0.24,
+  RUB: 0.010,
+  TRY: 0.036,
+  VND: 0.000041
+};
+
+
 const now = new Date();
 const sevenDaysAgo = new Date(now);
 sevenDaysAgo.setDate(now.getDate() - 7);
@@ -39,7 +60,7 @@ const getMonthKey = (date) => {
   const d = new Date(date);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
-
+let ethRates = {};
 let rewardsByMonth = [];
 let reportOverallStatsByGameType = [];
 let reportDailyStats = [];
@@ -47,6 +68,45 @@ let reportSessionStats = [];
 let reportProviderStats = [];
 let reportMonthlyStats = [];
 let reportGameData = [];
+
+async function fetchEthRates() {
+  // Fetch the last 3 years' data (CryptoCompare's limit is 2000 days per request, so 1095 is fine)
+  const response = await fetch('https://min-api.cryptocompare.com/data/v2/histoday?fsym=ETH&tsym=USD&limit=1095');
+  const data = await response.json();
+
+  if (!data.Data || !data.Data.Data) {
+    console.error("Failed to retrieve data.");
+    return {};
+  }
+
+  const ethRates = {};
+
+  // Process each day's data
+  data.Data.Data.forEach((dayData) => {
+    const justTheDate = new Date(dayData.time * 1000).toISOString().split('T')[0];
+    ethRates[justTheDate] = dayData.close;
+  });
+
+  return ethRates;
+}
+
+function convertEthToUSD(amountInEth, createTime) {
+  // Extract just the date part (YYYY-MM-DD) from createTime
+  const dateKey = new Date(createTime).toISOString().split('T')[0];
+
+  // Lookup the ETH-to-USD rate for that date
+  const ethRate = ethRates[dateKey];
+
+  // If the rate is undefined, handle it (e.g., rate not found for the date)
+  if (ethRate === undefined) {
+    console.log(`ETH rate not found for date: ${dateKey}`);
+    return 0;
+  }
+
+  // Convert the ETH amount to USD
+  const amountInUSD = amountInEth * ethRate;
+  return amountInUSD;
+}
 
 async function fetchData(apiUrl, page, retries = 10, delayMs = 1000) {
   try {
@@ -283,6 +343,8 @@ function getTimeDate(createTime) {
   return date;
 }
 
+
+
 function processData(allData) {
   console.log("Data processing starting.");
 
@@ -397,9 +459,6 @@ function processData(allData) {
         if (item.type === 'BuyIn' || item.type === 'PayOut') {
           const { game, providerCurrency, createTime } = item;
 
-          //TODO: cannot currently handle other currencies without rate table
-          if (providerCurrency.code !== "USD") return;
-
           let gameName = game.name;
 
           // Normalize game names
@@ -411,14 +470,18 @@ function processData(allData) {
             gameName = "Roulette";
           }
 
-          const amountInUSD = parseFloat(providerCurrency.amount);
-          const date = getTimeDate(createTime);
-          const justTheDate = new Date(createTime).toISOString().split('T')[0];
+          const rateToUSD = exchangeRatesToUSD[providerCurrency.code];
 
-          // Store ETH rate per day
-          if (!ethRates[justTheDate]) {
-            ethRates[justTheDate] = parseFloat(providerCurrency.rate);
+          if (!rateToUSD) {
+            //TODO
+            //may include crypto or new FIAT which we do not have rates for yet
+            //hardcoded rates table at top, could pull from live feed in the future
+            return;
           }
+
+          const amountInUSD = rateToUSD * providerCurrency.amount;
+
+          const date = getTimeDate(createTime);
 
           let providerAndStudio = formatProviderAndStudio(game.provider, game.studio);
 
@@ -546,15 +609,8 @@ function processData(allData) {
         else if (item.type === 'ScheduledLeaderboardWin') {
           let amount = parseFloat(item.data.prizeTotal.amount);
 
-          if (item.data.prizeTotal.currencyCode === 'ETH') {
-            let ethRate = ethRates[item.createTime];
-            if (!ethRate) {
-              // Find closest date's rate if not found
-              ethRate = findClosestRate(item.createTime);
-            }
-            // Convert ETH to USD using the rate
-            amount *= ethRate;
-          }
+          if (item.data.prizeTotal.currencyCode === 'ETH')
+            amount = convertEthToUSD(amount, item.createTime);
 
           let monthKey = getMonthKey(item.createTime);
           if (!rewardsByMonth[monthKey]) rewardsByMonth[monthKey] = 0;
@@ -580,12 +636,8 @@ function processData(allData) {
           */
 
           const ethAmount = parseFloat(item.data.amount);
-          let ethRate = ethRates[item.createTime];
-          if (!ethRate) {
-            // Find closest date's rate if not found
-            ethRate = findClosestRate(item.createTime);
-          }
-          const amount = ethAmount * ethRate;
+
+          const amount = convertEthToUSD(ethAmount, item.createTime);
 
           let monthKey = getMonthKey(item.createTime);
           if (!rewardsByMonth[monthKey]) rewardsByMonth[monthKey] = 0;
@@ -598,15 +650,8 @@ function processData(allData) {
 
           let amount = parseFloat(item.amount);
 
-          if (item.currencyCode === 'ETH') {
-            let ethRate = ethRates[item.createTime];
-            if (!ethRate) {
-              // Find closest date's rate if not found
-              ethRate = findClosestRate(item.createTime);
-            }
-            // Convert ETH to USD using the rate
-            amount *= ethRate;
-          }
+          if (item.currencyCode === 'ETH')
+            amount = convertEthToUSD(amount, item.createTime);
 
           let monthKey = getMonthKey(item.createTime);
           if (!rewardsByMonth[monthKey]) rewardsByMonth[monthKey] = 0;
@@ -621,13 +666,7 @@ function processData(allData) {
           let amount = parseFloat(item.amount);
 
           if (item.currencyCode === 'ETH') {
-            let ethRate = ethRates[item.createTime];
-            if (!ethRate) {
-              // Find closest date's rate if not found
-              ethRate = findClosestRate(item.createTime);
-            }
-            // Convert ETH to USD using the rate
-            amount *= ethRate;
+            amount = convertEthToUSD(amount, item.createTime);
           } else if (item.currencyCode !== 'USDT') {
             console.log("reward currency in " + item.currencyCode);
           }
@@ -820,18 +859,6 @@ function formatProviderAndStudio(providerName, studio) {
   return studio.name.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function findClosestRate(date) {
-  const availableDates = Object.keys(ethRates);
-  let closestDate = availableDates[0];
-
-  availableDates.forEach(d => {
-    if (Math.abs(new Date(d) - new Date(date)) < Math.abs(new Date(closestDate) - new Date(date))) {
-      closestDate = d;
-    }
-  });
-
-  return ethRates[closestDate];
-}
 
 function createDataFolder() {
   const dataFolder = path.join(__dirname, 'data');
@@ -874,6 +901,15 @@ async function main() {
   const untrackedRewards = loadUntrackedRewards();
   for (const [month, reward] of Object.entries(untrackedRewards)) {
     rewardsByMonth[month] = reward;
+  }
+
+  try {
+    console.log("Fetching ETH rate table...");
+    ethRates = await fetchEthRates();
+  }
+  catch (err) {
+    console.log("Error occurred fetching eth rates:");
+    console.error(err);
   }
 
   try {
@@ -952,3 +988,5 @@ async function main() {
 }
 
 main();
+
+
