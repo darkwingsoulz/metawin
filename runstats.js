@@ -230,6 +230,9 @@ async function updateLocalFiles(urlType) {
           await saveData(urlType, pageData, page);
         }
       }
+      else {
+        throw new Error();
+      }
     }
 
   } catch (error) {
@@ -284,6 +287,9 @@ async function updateLocalFilesForMiniGames(urlType) {
         } else {
           await saveData(urlType, pageData, page);
         }
+      }
+      else {
+        throw new Error();
       }
     }
 
