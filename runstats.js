@@ -168,11 +168,13 @@ async function updateLocalFiles(urlType) {
   let resumeTotalPages = getValue(`${urlType}_resume_totalpages`);
   let resumePage = getValue(`${urlType}_resume`);
   let totalPages = 0;
+  let startingPage = 2;
 
   try {
     if (resumePage > 0) {
       console.log(`Resuming from page ${resumePage} for ${urlType}...`);
       totalPages = resumeTotalPages;
+      startingPage = resumePage;
     }
     else {
       console.log(`Retrieving data for ${urlType}...`);
@@ -201,7 +203,7 @@ async function updateLocalFiles(urlType) {
       saveValue(urlType, maxId);
     }
 
-    for (let page = 2; page <= totalPages; page++) {
+    for (let page = startingPage; page <= totalPages; page++) {
       console.log(`Retrieving data for ${urlType} (${page} of ${totalPages})`);
 
       const pageData = await fetchData(METAWIN_ENDPOINTS[urlType], page);
@@ -240,11 +242,13 @@ async function updateLocalFilesForMiniGames(urlType) {
   let resumeTotalPages = getValue(`${urlType}_resume_totalpages`);
   let resumePage = getValue(`${urlType}_resume`);
   let totalPages = 0;
+  let startingPage = 2;
 
   try {
     if (resumePage > 0) {
       console.log(`Resuming from page ${resumePage} for ${urlType}...`);
       totalPages = resumeTotalPages;
+      startingPage = resumePage;
     }
     else {
       console.log(`Retrieving data for ${urlType}...`);
@@ -258,7 +262,6 @@ async function updateLocalFilesForMiniGames(urlType) {
       const newItems = firstPageData.items.filter(item => item.createTime > newestId);
 
       if (newItems.length > 0) {
-        console.log(newItems);
         firstPageData.items = newItems;
         await saveData(urlType, firstPageData, 1);
       } else {
@@ -274,7 +277,7 @@ async function updateLocalFilesForMiniGames(urlType) {
       saveValue(urlType, maxId);
     }
 
-    for (let page = 2; page <= totalPages; page++) {
+    for (let page = startingPage; page <= totalPages; page++) {
       console.log(`Retrieving data for ${urlType} (${page} of ${totalPages})`);
 
       const pageData = await fetchData(METAWIN_ENDPOINTS[urlType], page);
@@ -691,7 +694,7 @@ function processData(allData) {
           //TODO HODL game, future support 
         }
         else {
-          console.log(`Unknown type ${item.type}`);
+          //console.log(`Unknown type ${item.type}`);
         }
       });
     });
