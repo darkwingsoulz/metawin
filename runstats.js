@@ -124,8 +124,7 @@ async function fetchData(apiUrl, page, retries = 10, delayMs = 1000) {
   }
 }
 
-
-function getNewestId(urlType) {
+function getValue(urlType) {
   const latestIdFile = path.join(__dirname, 'data', 'latest_id.json');
 
   if (fs.existsSync(latestIdFile)) {
@@ -137,7 +136,7 @@ function getNewestId(urlType) {
   return 0;
 }
 
-function saveNewestId(urlType, newestId) {
+function saveValue(urlType, newestId) {
   const latestIdFile = path.join(__dirname, 'data', 'latest_id.json');
 
   let data = {};
@@ -162,57 +161,45 @@ async function saveData(urlType, data, page) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
-function upgradeLatestFileFormat() {
-  const latestIdFile = path.join(__dirname, 'data', 'latest_id.json');
-  const oldIdFile = path.join(__dirname, 'data', 'latest_id.txt');
-
-  if (fs.existsSync(oldIdFile)) {
-    const singleId = fs.readFileSync(oldIdFile, 'utf8');
-    const initialData = {
-      HISTORY: parseInt(singleId, 10),
-      NOTIFICATIONS: 0,
-      CLAIMS: 0,
-      REWARDS: 0,
-      HILO: 0,
-      REKT: 0
-    };
-    // Save the new JSON format
-    fs.writeFileSync(latestIdFile, JSON.stringify(initialData, null, 2));
-    // Delete the old format file
-    fs.unlinkSync(oldIdFile);
-  }
-}
-
 async function updateLocalFiles(urlType) {
-
   const apiUrl = METAWIN_ENDPOINTS[urlType];
-  const newestId = getNewestId(urlType);
+  const newestId = getValue(urlType);
+
+  let resumeTotalPages = getValue(`${urlType}_resume_totalpages`);
+  let resumePage = getValue(`${urlType}_resume`);
+  let totalPages = 0;
 
   try {
-    console.log(`Retrieving data for ${urlType}...`);
-
-    const firstPageData = await fetchData(apiUrl, 1);
-    if (!firstPageData) {
-      console.log(`Error fetching new data for ${urlType}.`);
-      return;
+    if (resumePage > 0) {
+      console.log(`Resuming from page ${resumePage} for ${urlType}...`);
+      totalPages = resumeTotalPages;
     }
+    else {
+      console.log(`Retrieving data for ${urlType}...`);
 
-    const newItems = firstPageData.items.filter(item => item.id > newestId);
+      const firstPageData = await fetchData(apiUrl, 1);
+      if (!firstPageData) {
+        console.log(`Error fetching new data for ${urlType}.`);
+        return;
+      }
 
-    if (newItems.length > 0) {
-      firstPageData.items = newItems;
-      await saveData(urlType, firstPageData, 1);
-    } else {
-      console.log(`${urlType} already up to date.`);
-      return;
+      const newItems = firstPageData.items.filter(item => item.id > newestId);
+
+      if (newItems.length > 0) {
+        firstPageData.items = newItems;
+        await saveData(urlType, firstPageData, 1);
+      } else {
+        console.log(`${urlType} already up to date.`);
+        return;
+      }
+
+      console.log(`New data incoming for ${urlType}.`);
+
+      totalPages = firstPageData.pageCount;
+
+      let maxId = Math.max(...newItems.map(item => item.id));
+      saveValue(urlType, maxId);
     }
-
-    console.log(`New data incoming for ${urlType}.`);
-
-    const totalPages = firstPageData.pageCount;
-
-    let maxId = Math.max(...newItems.map(item => item.id));
-    saveNewestId(urlType, maxId);
 
     for (let page = 2; page <= totalPages; page++) {
       console.log(`Retrieving data for ${urlType} (${page} of ${totalPages})`);
@@ -231,46 +218,61 @@ async function updateLocalFiles(urlType) {
         }
       }
       else {
+        saveValue(`${urlType}_resume`, page);
+        saveValue(`${urlType}_resume_totalpages`, totalPages);
+        console.log(`Error retrieving data on ${urlType} page ${page}. Will resume on next run. Consider updating your bearer token and/or changing your IP if your requests are getting blocked.`)
         throw new Error();
       }
     }
 
+    saveValue(`${urlType}_resume`, 0);
+    saveValue(`${urlType}_resume_totalpages`, 0);
   } catch (error) {
-    console.log(`Cannot retrieve new data for ${urlType}, need token`);
+    console.log(`Cannot retrieve new data for ${urlType}, need new token`);
   }
 }
 
 async function updateLocalFilesForMiniGames(urlType) {
 
   const apiUrl = METAWIN_ENDPOINTS[urlType];
-  const newestId = getNewestId(urlType);
+  const newestId = getValue(urlType);
+
+  let resumeTotalPages = getValue(`${urlType}_resume_totalpages`);
+  let resumePage = getValue(`${urlType}_resume`);
+  let totalPages = 0;
 
   try {
-    console.log(`Retrieving data for ${urlType}...`);
-
-    const firstPageData = await fetchData(apiUrl, 1);
-    if (!firstPageData) {
-      console.log(`Error fetching new data for ${urlType}.`);
-      return;
+    if (resumePage > 0) {
+      console.log(`Resuming from page ${resumePage} for ${urlType}...`);
+      totalPages = resumeTotalPages;
     }
+    else {
+      console.log(`Retrieving data for ${urlType}...`);
 
-    const newItems = firstPageData.items.filter(item => item.createTime > newestId);
+      const firstPageData = await fetchData(apiUrl, 1);
+      if (!firstPageData) {
+        console.log(`Error fetching new data for ${urlType}.`);
+        return;
+      }
 
-    if (newItems.length > 0) {
-      console.log(newItems);
-      firstPageData.items = newItems;
-      await saveData(urlType, firstPageData, 1);
-    } else {
-      console.log(`${urlType} already up to date.`);
-      return;
+      const newItems = firstPageData.items.filter(item => item.createTime > newestId);
+
+      if (newItems.length > 0) {
+        console.log(newItems);
+        firstPageData.items = newItems;
+        await saveData(urlType, firstPageData, 1);
+      } else {
+        console.log(`${urlType} already up to date.`);
+        return;
+      }
+
+      console.log(`New data incoming for ${urlType}.`);
+
+      totalPages = firstPageData.pageCount;
+
+      let maxId = Math.max(...newItems.map(item => item.createTime));
+      saveValue(urlType, maxId);
     }
-
-    console.log(`New data incoming for ${urlType}.`);
-
-    const totalPages = firstPageData.pageCount;
-
-    let maxId = Math.max(...newItems.map(item => item.createTime));
-    saveNewestId(urlType, maxId);
 
     for (let page = 2; page <= totalPages; page++) {
       console.log(`Retrieving data for ${urlType} (${page} of ${totalPages})`);
@@ -289,10 +291,15 @@ async function updateLocalFilesForMiniGames(urlType) {
         }
       }
       else {
+        saveValue(`${urlType}_resume`, page);
+        saveValue(`${urlType}_resume_totalpages`, totalPages);
+        console.log(`Error retrieving data on ${urlType} page ${page}. Will resume on next run. Consider updating your bearer token and/or changing your IP if your requests are getting blocked.`)
         throw new Error();
       }
     }
 
+    saveValue(`${urlType}_resume`, 0);
+    saveValue(`${urlType}_resume_totalpages`, 0);
   } catch (error) {
     console.log(`Cannot retrieve new data for ${urlType}, need token`);
   }
@@ -348,8 +355,6 @@ function getTimeDate(createTime) {
 
   return date;
 }
-
-
 
 function processData(allData) {
   console.log("Data processing starting.");
@@ -872,6 +877,7 @@ function createDataFolder() {
     fs.mkdirSync(dataFolder);
   }
 }
+
 function createOutputFolder() {
   const outputFolder = path.join(__dirname, 'output');
   if (!fs.existsSync(outputFolder)) {
@@ -902,7 +908,6 @@ const loadUntrackedRewards = () => {
 async function main() {
   createDataFolder();
   createOutputFolder();
-  upgradeLatestFileFormat();
 
   const untrackedRewards = loadUntrackedRewards();
   for (const [month, reward] of Object.entries(untrackedRewards)) {
@@ -919,7 +924,7 @@ async function main() {
   }
 
   try {
-    console.log("Updating local files...");
+    console.log("Downloading history files...");
     for (const urlType in METAWIN_ENDPOINTS) {
       if (urlType === 'HILO' || urlType === 'REKT')
         await updateLocalFilesForMiniGames(urlType);
