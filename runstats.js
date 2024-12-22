@@ -209,7 +209,7 @@ async function updateLocalFiles(urlType) {
       const pageData = await fetchData(METAWIN_ENDPOINTS[urlType], page);
 
       if (pageData) {
-        if (newestId && pageData.items.some(item => item.id <= newestId)) {
+        if (resumePage == 0 && newestId && pageData.items.some(item => item.id <= newestId)) {
           const newItems = pageData.items.filter(item => item.id > newestId);
           pageData.items = newItems;
           await saveData(urlType, pageData, page);
@@ -283,7 +283,7 @@ async function updateLocalFilesForMiniGames(urlType) {
       const pageData = await fetchData(METAWIN_ENDPOINTS[urlType], page);
 
       if (pageData) {
-        if (newestId && pageData.items.some(item => item.createTime <= newestId)) {
+        if (resumePage == 0 && newestId && pageData.items.some(item => item.createTime <= newestId)) {
           const newItems = pageData.items.filter(item => item.createTime > newestId);
           pageData.items = newItems;
           await saveData(urlType, pageData, page);
