@@ -813,6 +813,14 @@
                     <input type="radio" name="sort" value="netUSD-desc" id="netUSD-desc">
                     <label for="netUSD-desc"><span>&darr;</span> Desc</label>
                 </div>
+
+                <div class="sort-group">
+                    <div class="sort-label">Total Wagered</div>
+                    <input type="radio" name="sort" value="totalWagered-asc" id="totalWagered-asc">
+                    <label for="totalWagered-asc"><span>&uarr;</span> Asc</label>
+                    <input type="radio" name="sort" value="totalWagered-desc" id="totalWagered-desc">
+                    <label for="totalWagered-desc"><span>&darr;</span> Desc</label>
+                </div>
             </div>
         </div>
 
@@ -980,6 +988,9 @@
                             break;
                         case 'netUSD':
                             if (label === 'Net USD') return parseFloat(value.replace('$', '').replace(',', ''));
+                            break;
+                        case 'totalWagered':
+                            if (label === 'Total Wagered') return parseFloat(value.replace('$', '').replace(',', ''));
                             break;
                     }
                 }
