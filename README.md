@@ -1,3 +1,6 @@
+**❌❗ THIS SCRIPT CURRENTLY DOES NOT WORK DUE TO BREAKING CHANGES ON THE SITE.  ❗❌**
+
+
 # MetaWin Gaming History and Rewards Dashboard
 
 This project generates personal stats for your MetaWin gaming history and rewards. It covers daily, monthly, game-specific, and overall summaries to help you track your performance and rewards.
