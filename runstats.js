@@ -10,15 +10,15 @@ const ejs = require('ejs');
 
 const TOKEN_BEARER = process.env.TOKEN_BEARER;
 const PAGE_SIZE = parseInt(process.env.PAGE_SIZE, 10);
-const BATCH_SIZE = parseInt(process.env.BATCH_SIZE, 10);
+const BATCH_SIZE = 25;
+const RETRIES = 10;
 
 const METAWIN_ENDPOINTS = {
-  HISTORY: 'https://api.prod.platform.metawin.com/game/action',
   NOTIFICATIONS: 'https://api.prod.platform.metawin.com/notification',
   CLAIMS: 'https://api.prod.platform.metawin.com/inventory',
   REWARDS: 'https://api.prod.platform.metawin.com/reward',
-  HILO: 'https://api.prod.platform.mwapp.io/game/history/hilo',
-  REKT: 'https://api.prod.platform.mwapp.io/game/history/crash'
+  //HILO: 'https://api.prod.platform.mwapp.io/game/history/hilo', DOES NOT WORK RIGHT NOW
+  //REKT: 'https://api.prod.platform.mwapp.io/game/history/crash' DOES NOT WORK RIGHT NOW
 };
 
 const REKT_IMAGE_URL = "https://content.prod.platform.mwapp.io/games/NEWREKT.png";
@@ -29,28 +29,6 @@ const headers = {
   'Authorization': 'Bearer ' + TOKEN_BEARER
 };
 
-const exchangeRatesToUSD = {
-  USD: 1,
-  EUR: 1.12,
-  ARS: 0.01,
-  BRL: 0.20,
-  CAD: 0.74,
-  CLP: 0.0013,
-  CNY: 0.14,
-  DKK: 0.15,
-  IDR: 0.000065,
-  INR: 0.012,
-  JPY: 0.0067,
-  KRW: 0.00074,
-  MXN: 0.056,
-  PHP: 0.018,
-  PLN: 0.24,
-  RUB: 0.010,
-  TRY: 0.036,
-  VND: 0.000041
-};
-
-
 const now = new Date();
 const sevenDaysAgo = new Date(now);
 sevenDaysAgo.setDate(now.getDate() - 7);
@@ -60,6 +38,7 @@ const getMonthKey = (date) => {
   const d = new Date(date);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
+
 let ethRates = {};
 let rewardsByMonth = [];
 let reportOverallStatsByGameType = [];
@@ -68,6 +47,7 @@ let reportSessionStats = [];
 let reportProviderStats = [];
 let reportMonthlyStats = [];
 let reportGameData = [];
+let forex = loadRates();
 
 async function fetchEthRates() {
   // Fetch the last 3 years' data (CryptoCompare's limit is 2000 days per request, so 1095 is fine)
@@ -151,15 +131,144 @@ function saveValue(urlType, newestId) {
   fs.writeFileSync(latestIdFile, JSON.stringify(data, null, 2));
 }
 
-async function saveData(urlType, data, page) {
+async function saveData(urlType, data, page, dataDate) {
   const dir = path.join(__dirname, 'data');
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
   }
-  const timestamp = Date.now();
-  const filePath = path.join(dir, `${urlType}_data_page_${page}_${timestamp}.json`);
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+
+  const filePath = path.join(
+    dir,
+    dataDate ? `${urlType}_${dataDate}_${page}.json` : `${urlType}_${page}.json`
+  );
+
+  if (data && data.totalCount > 0)
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
+
+const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+
+function formatDate(date) {
+  return date.toISOString().split('.')[0] + '.000Z';
+}
+
+async function fetchDataV2(fromISO, toISO, page, retries = RETRIES, delayMs = 1000) {
+  const BASE_URL = 'https://api.prod.platform.mwapp.io/game/action';
+  const url = `${BASE_URL}?page=${page}&pageSize=${PAGE_SIZE}&createdFrom=${fromISO}&createdTo=${toISO}`;
+
+  try {
+    const response = await axios.get(url, { headers });
+    return response.data;
+  } catch (error) {
+    if (retries > 0) {
+      console.warn(`Request failed for page ${page}, retrying in ${delayMs} ms... (${RETRIES - retries + 1}/${RETRIES})`);
+      await sleep(delayMs);
+      return fetchDataV2(fromISO, toISO, page, retries - 1, delayMs);
+    } else {
+      console.error(`All retries failed for page ${page} from ${fromISO} to ${toISO}`);
+      return null;
+    }
+  }
+}
+
+async function fetchDayData(startDate) {
+  const createdFrom = new Date(startDate);
+  const createdTo = new Date(startDate);
+  createdTo.setUTCHours(23, 59, 59, 999);
+
+  const fromISO = formatDate(createdFrom);
+  const toISO = formatDate(createdTo);
+
+  console.log(`Fetching data from ${fromISO} to ${toISO}`);
+
+  let page = 1;
+  let pageCount = 1;
+
+  while (page <= pageCount) {
+    const data = await fetchDataV2(fromISO, toISO, page);
+
+    if (!data) {
+      console.warn(`Skipping page ${page} for ${fromISO}`);
+      break;
+    }
+
+    if (page === 1) {
+      pageCount = data.pageCount || 1;
+    }
+
+    await saveData("HISTORY", data, page, createdFrom.toISOString().split('T')[0]);
+    page++;
+    await sleep(300);
+  }
+
+
+}
+
+
+//delete all pages for latest retrieve day
+//import for resuming imports
+function deleteLatestHistoryDay() {
+  let dir = "data";
+  if (!fs.existsSync(dir)) {
+    console.warn(`Directory does not exist: ${dir}`);
+    return null;
+  }
+
+  const files = fs.readdirSync(dir);
+  const dateRegex = /^HISTORY_(\d{4}-\d{2}-\d{2})_\d+\.json$/;
+
+  const dates = new Set();
+
+  // Extract valid dates
+  for (const file of files) {
+    const match = file.match(dateRegex);
+    if (match) {
+      dates.add(match[1]);
+    }
+  }
+
+  if (dates.size === 0) return null;
+
+  // Find latest date
+  const latestDate = [...dates].sort().pop();
+
+  // Delete all files with that date
+  for (const file of files) {
+    if (file.startsWith(`HISTORY_${latestDate}_`)) {
+      fs.unlinkSync(path.join(dir, file));
+    }
+  }
+
+  return new Date(`${latestDate}T00:00:00Z`);
+}
+
+
+async function downloadHistory(startDate) {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  for (let d = new Date(startDate); d <= today; d.setUTCDate(d.getUTCDate() + 1)) {
+
+    await fetchDayData(new Date(d));
+
+  }
+}
+
+function loadRates() {
+  const raw = fs.readFileSync(path.resolve("forex.json"), 'utf8');
+  return JSON.parse(raw);
+}
+
+function getForexRate(month, currency) {
+  if (!forex[month]) {
+    const months = Object.keys(forex).sort();
+    month = months[months.length - 1];
+  }
+
+  const monthRates = forex[month];
+  return monthRates[currency] ?? 0;  // Return 0 if currency not found
+}
+
 
 async function updateLocalFiles(urlType) {
   const apiUrl = METAWIN_ENDPOINTS[urlType];
@@ -359,6 +468,7 @@ function getTimeDate(createTime) {
   return date;
 }
 
+
 function processData(allData) {
   console.log("Data processing starting.");
 
@@ -484,18 +594,34 @@ function processData(allData) {
             gameName = "Roulette";
           }
 
-          const rateToUSD = exchangeRatesToUSD[providerCurrency.code];
+          const date = getTimeDate(createTime);
 
-          if (!rateToUSD) {
-            //TODO
-            //may include crypto or new FIAT which we do not have rates for yet
-            //hardcoded rates table at top, could pull from live feed in the future
+          let rateToUSD = 0;
+          let amountInUSD = 0;
+
+          if (providerCurrency.code == "USD" || providerCurrency.code == "USDC" || providerCurrency.code == "USDT") {
+            rateToUSD = 1;
+            amountInUSD = providerCurrency.amount;
+          }
+          else if (providerCurrency.code == "ETH") {
+            amountInUSD = convertEthToUSD(providerCurrency.amount, item.createTime)
+          }
+          else if (providerCurrency.code == "SOL") {
             return;
           }
+          else {
 
-          const amountInUSD = rateToUSD * providerCurrency.amount;
+            let monthKey = date.substring(0, 7);
 
-          const date = getTimeDate(createTime);
+            rateToUSD = getForexRate(monthKey, providerCurrency.code);
+
+            //currency not found
+            if (rateToUSD == 0 && providerCurrency.code != "USD") {
+              return;
+            }
+
+            amountInUSD = providerCurrency.amount / rateToUSD;
+          }
 
           let providerAndStudio = formatProviderAndStudio(game.provider, game.studio);
 
@@ -550,7 +676,6 @@ function processData(allData) {
 
           //Process game round
           if (roundTracker[item.roundId].buy && roundTracker[item.roundId].payout) {
-
             let buyAmount = roundTracker[item.roundId].buy;
             let payoutAmount = roundTracker[item.roundId].payout;
 
@@ -674,14 +799,14 @@ function processData(allData) {
         } else if (item.type === 'Funds' || item.type === 'InventoryFunds') {
           //Must be Playable/Completed
           //these are winbacks/boost codes (based on item.sourceType)
-          if (item.status !== 'Completed' || item.cashType !== 'Playable')
+          if ((item.status !== 'Completed' && item.status !== 'Claimed') || item.cashType !== 'Playable')
             return;
 
           let amount = parseFloat(item.amount);
 
           if (item.currencyCode === 'ETH') {
             amount = convertEthToUSD(amount, item.createTime);
-          } else if (item.currencyCode !== 'USDT') {
+          } else if (item.currencyCode !== 'USDT' && item.currencyCode !== 'USDC') {
             console.log("reward currency in " + item.currencyCode);
           }
 
@@ -908,6 +1033,32 @@ const loadUntrackedRewards = () => {
   }
 };
 
+async function findFirstActivity() {
+  let start = new Date('2021-01-01');
+  const today = new Date();
+
+  while (start < today) {
+    let end = new Date(start);
+    end.setMonth(end.getMonth() + 6);
+    if (end > today) end = new Date(today); // Don't go past today
+
+    const fromISO = formatDate(start);
+    const toISO = formatDate(end);
+
+    let data = await fetchDataV2(fromISO, toISO, 1, 0, 0);
+
+    if (data?.totalCount > 0) {
+      return data.items[data.items.length - 1].createTime;
+    }
+
+    // Move to next 6-month window
+    start = end;
+  }
+
+  console.log("No activity found before today");
+  return null;
+}
+
 async function main() {
   createDataFolder();
   createOutputFolder();
@@ -927,7 +1078,7 @@ async function main() {
   }
 
   try {
-    console.log("Downloading history files...");
+    console.log("Downloading rewards...");
     for (const urlType in METAWIN_ENDPOINTS) {
       if (urlType === 'HILO' || urlType === 'REKT')
         await updateLocalFilesForMiniGames(urlType);
@@ -940,9 +1091,25 @@ async function main() {
     console.log("Cannot retrieve new data, need token");
   }
 
+  console.log("Downloading history files...");
+
+  let latestDay = deleteLatestHistoryDay();
+
+  if (!latestDay) {
+    latestDay = await findFirstActivity();
+  }
+
+  if (!latestDay) {
+    console.log("Cannot generate report. Cannot find history for this account.");
+    return;
+  }
+
+  await downloadHistory(latestDay);
+
   console.log("Reading data files");
   const localData = readAllDataFromLocalFiles();
   console.log("Reading Data files complete");
+
   if (localData.length > 0) {
     const { stats, providerStats, overallStats, dailyNetUSD, sessionNetUSD, gameInfo } = processData(localData);
 
