@@ -73,8 +73,7 @@ Edit the .env file and add your values. For example:
 
 ```bash
 TOKEN_BEARER=YOUR_BEARER_TOKEN
-PAGE_SIZE=1000
-BATCH_SIZE=25
+PAGE_SIZE=500
 ```
 Retrieving the TOKEN_BEARER:
 Go to the MetaWin website and log in.
