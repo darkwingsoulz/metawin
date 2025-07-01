@@ -601,7 +601,7 @@ function processData(allData) {
 
           if (providerCurrency.code == "USD" || providerCurrency.code == "USDC" || providerCurrency.code == "USDT") {
             rateToUSD = 1;
-            amountInUSD = providerCurrency.amount;
+            amountInUSD = Number(providerCurrency.amount);
           }
           else if (providerCurrency.code == "ETH") {
             amountInUSD = convertEthToUSD(providerCurrency.amount, item.createTime)
@@ -620,7 +620,7 @@ function processData(allData) {
               return;
             }
 
-            amountInUSD = providerCurrency.amount / rateToUSD;
+            amountInUSD = Number(providerCurrency.amount) / rateToUSD;
           }
 
           let providerAndStudio = formatProviderAndStudio(game.provider, game.studio);
