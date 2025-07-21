@@ -1103,7 +1103,7 @@ async function main() {
   console.log("Downloading history files...");
 
   let latestDay = deleteLatestHistoryDay();
-  console.log('latest day is ' + latestDay);
+
   if (!latestDay) {
     latestDay = await findFirstActivity();
   }
