@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const ejs = require('ejs');
 
+const PROFILE = process.env.PROFILE || '';
 const TOKEN_BEARER = process.env.TOKEN_BEARER;
 const PAGE_SIZE = parseInt(process.env.PAGE_SIZE, 10);
 const BATCH_SIZE = 25;
@@ -137,10 +138,18 @@ async function saveData(urlType, data, page, dataDate) {
     fs.mkdirSync(dir);
   }
 
-  const filePath = path.join(
-    dir,
-    dataDate ? `${urlType}_${dataDate}_${page}.json` : `${urlType}_${page}.json`
-  );
+  let filePath = '';
+
+  if (PROFILE == '')
+    filePath = path.join(
+      dir,
+      dataDate ? `${urlType}_${dataDate}_${page}.json` : `${urlType}_${page}.json`
+    );
+  else
+    filePath = path.join(
+      dir,
+      dataDate ? `${urlType}_${PROFILE}_${dataDate}_${page}.json` : `${urlType}_${PROFILE}_${page}.json`
+    );
 
   if (data && data.totalCount > 0)
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
@@ -215,7 +224,7 @@ function deleteLatestHistoryDay() {
   }
 
   const files = fs.readdirSync(dir);
-  const dateRegex = /^HISTORY_(\d{4}-\d{2}-\d{2})_\d+\.json$/;
+  const dateRegex = /^HISTORY_(?:.*_)?(\d{4}-\d{2}-\d{2})_\d+\.json$/;
 
   const dates = new Set();
 
@@ -1094,7 +1103,7 @@ async function main() {
   console.log("Downloading history files...");
 
   let latestDay = deleteLatestHistoryDay();
-
+  console.log('latest day is ' + latestDay);
   if (!latestDay) {
     latestDay = await findFirstActivity();
   }
