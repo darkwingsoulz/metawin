@@ -88,8 +88,6 @@ Note that for the first time, this script could take several minutes depending o
 The bearer token you provided is only valid for a few minutes of idle time, so please ensure you navigate the Game History tab on the website to keep 
 this token active until the report completes.  All data is saved locally.  Subsequent runs will only download new history and will run very quickly.
 
-If the token expires mid-run, please delete all files from the data folder before re-running the script.
-
 For future runs, always get a new token bearer to place in your ENV file.
 
 After setting up the .env file, you can run the project using:
